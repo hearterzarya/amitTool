@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Copy Cookies",
+  "version": "1.0.0",
+  "description": "Extract and copy cookies from the current tab",
+  "permissions": [
+    "cookies",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "logo.png",
+    "128": "logo.png"
+  },
+  "action": {
+    "default_icon": {
+      "48": "logo.png",
+      "128": "logo.png"
+    },
+    "default_title": "Copy Cookies",
+    "default_popup": "popup.html"
+  }
+}

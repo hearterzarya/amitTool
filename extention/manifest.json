@@ -1,0 +1,44 @@
+{
+    "manifest_version": 3,
+    "name": "AliDigitalSolution - Premium Tools Access",
+    "version": "1.0.0",
+    "description": "Access premium AI tools with automatic cookie injection and session management",
+    "permissions": [
+        "cookies",
+        "tabs",
+        "storage",
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"],
+        "run_at": "document_end"
+      }
+    ],
+    "icons": {
+        "48": "logo.png",
+        "128": "logo.png"
+    },
+    "action": {
+      "default_icon": {
+          "48": "logo.png",
+          "128": "logo.png"
+      },
+      "default_title": "AliDigitalSolution - Premium Tools",
+      "default_popup": "popup.html"
+    },
+    "web_accessible_resources": [
+      {
+        "resources": ["logo.png"],
+        "matches": ["<all_urls>"]
+    }
+    ]
+  }

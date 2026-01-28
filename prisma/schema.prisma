@@ -1,0 +1,455 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  passwordHash    String?
+  name            String?
+  image           String?    // Profile picture URL (for OAuth providers like Google)
+  role            Role       @default(USER)
+  status          UserStatus @default(FREE)
+  isEmailVerified Boolean    @default(false)
+  emailVerified   DateTime? // Legacy field, kept for compatibility
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // NextAuth relations
+  accounts        Account[]
+  sessions        Session[]
+
+  subscriptions       ToolSubscription[]
+  payments            Payment[]
+  otpTokens           OtpToken[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// NextAuth Account model (for OAuth providers like Google)
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// NextAuth Session model
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// NextAuth VerificationToken model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum Role {
+  USER
+  ADMIN
+  TEST_USER
+}
+
+enum UserStatus {
+  FREE
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+// Tools (AI services available for purchase)
+model Tool {
+  id               String       @id @default(uuid())
+  name             String // "ChatGPT Plus"
+  slug             String       @unique
+  description      String       @db.Text
+  shortDescription String?
+  category         ToolCategory
+  icon             String? // Icon URL or emoji
+  toolUrl          String // https://chat.openai.com
+  priceMonthly     BigInt // in paise (e.g., 5000 = ₹50) - deprecated, use plan prices
+
+  // Plan pricing - Duration specific prices (in paise)
+  // Shared Plan Prices
+  sharedPlanPrice1Month  BigInt? // 1 month price in paise
+  sharedPlanPrice3Months BigInt? // 3 months price in paise
+  sharedPlanPrice6Months BigInt? // 6 months price in paise
+  sharedPlanPrice1Year   BigInt? // 1 year price in paise
+  // Private Plan Prices
+  privatePlanPrice1Month  BigInt? // 1 month price in paise
+  privatePlanPrice3Months BigInt? // 3 months price in paise
+  privatePlanPrice6Months BigInt? // 6 months price in paise
+  privatePlanPrice1Year   BigInt? // 1 year price in paise
+  
+  // Legacy fields (kept for backward compatibility)
+  sharedPlanPrice     BigInt? // Shared plan price in paise (deprecated, use duration-specific prices)
+  privatePlanPrice    BigInt? // Private plan price in paise (deprecated, use duration-specific prices)
+  
+  sharedPlanFeatures  String? @db.Text // JSON array or comma-separated features
+  privatePlanFeatures String? @db.Text // JSON array or comma-separated features
+  sharedPlanEnabled   Boolean @default(false) // Enable/disable shared plan
+  privatePlanEnabled  Boolean @default(false) // Enable/disable private plan
+  sharedPlanName      String? // Custom name for shared plan
+  privatePlanName      String? // Custom name for private plan
+  sharedPlanDescription String? @db.Text // Custom description for shared plan
+  privatePlanDescription String? @db.Text // Custom description for private plan
+
+  // Cookie storage (encrypted)
+  cookiesEncrypted  String?   @db.Text
+  cookiesUpdatedAt  DateTime?
+  cookiesExpiryDate DateTime? // Admin sets expected expiry
+
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false) // Featured in slider
+  sortOrder  Int     @default(0)
+  isOutOfStock Boolean @default(false) // Out of stock status
+
+  stripePriceId String? // Stripe Price ID for subscription
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions ToolSubscription[]
+  payments      Payment[]
+  bundleTools   BundleTool[]
+
+  @@map("tools")
+}
+
+enum ToolCategory {
+  AI_WRITING
+  SEO_TOOLS
+  DESIGN
+  PRODUCTIVITY
+  CODE_DEV
+  VIDEO_AUDIO
+  OTHER
+}
+
+// User subscriptions to individual tools
+model ToolSubscription {
+  id     String @id @default(uuid())
+  userId String
+  toolId String
+
+  // Plan type
+  planType PlanType @default(SHARED)
+
+  // Subscription status
+  status SubscriptionStatus @default(ACTIVE)
+
+  // Activation status (for private plans)
+  activationStatus ActivationStatus @default(ACTIVE) // ACTIVE for shared (instant), PENDING for private
+  activatedAt      DateTime? // When admin activated (for private plans)
+  activatedBy      String? // Admin ID who activated
+
+  // Credentials
+  sharedCredentials  SharedCredentials? // For shared plans
+  privateCredentials PrivateCredentials? // For private plans
+
+  // Stripe subscription details
+  stripeSubscriptionId String? @unique
+  stripeCustomerId     String?
+
+  // Billing cycle
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  cancelAtPeriodEnd Boolean   @default(false)
+  canceledAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolId])
+  @@map("tool_subscriptions")
+}
+
+enum PlanType {
+  SHARED
+  PRIVATE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+}
+
+enum ActivationStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+}
+
+// Shared credentials (4-5 users per account)
+model SharedCredentials {
+  id                   String   @id @default(uuid())
+  subscriptionId       String   @unique
+  email                String
+  password             String   @db.Text // Encrypted
+  sharedAccountId      String // Reference to shared account pool
+  maxUsers             Int      @default(5)
+  currentUsers         Int      @default(1)
+  credentialsUpdatedAt DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  subscription ToolSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("shared_credentials")
+}
+
+// Private credentials (one user per account)
+model PrivateCredentials {
+  id                   String   @id @default(uuid())
+  subscriptionId       String   @unique
+  email                String
+  password             String   @db.Text // Encrypted
+  credentialsUpdatedAt DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  subscription ToolSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("private_credentials")
+}
+
+// Coupon Codes
+model Coupon {
+  id          String   @id @default(uuid())
+  code        String   @unique // Coupon code (e.g., "SAVE20")
+  description String?  @db.Text
+  discountType DiscountType // PERCENTAGE or FIXED
+  discountValue Int // Percentage (0-100) or fixed amount in paise
+  minAmount   Int? // Minimum purchase amount in paise (optional)
+  maxDiscount Int? // Maximum discount in paise (for percentage coupons)
+  maxUses     Int? // Maximum number of times coupon can be used (null = unlimited)
+  usedCount   Int     @default(0) // Number of times already used
+  validFrom   DateTime @default(now())
+  validUntil  DateTime? // Expiry date (null = no expiry)
+  isActive    Boolean  @default(true)
+  
+  // Usage tracking
+  payments    Payment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive, validUntil])
+  @@map("coupons")
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+// Payment transactions (Paygic)
+model Payment {
+  id       String    @id @default(uuid())
+  userId   String
+  toolId   String?
+  bundleId String? // For bundle purchases
+  planName String? // For bundle purchases (Starter, Pro, Elite) or plan type
+  planType PlanType? // SHARED or PRIVATE for tool purchases
+  amount   Int // Amount in paise (e.g., 99900 = ₹999)
+  couponId String? // Applied coupon
+  discountAmount Int @default(0) // Discount applied in paise
+
+  // Paygic details
+  merchantReferenceId String  @unique // Our unique reference ID
+  paygicReferenceId   String? // Paygic's reference ID
+  paygicToken         String? // Token used for this payment
+
+  // Payment links
+  upiIntent   String? @db.Text
+  phonePeLink String? @db.Text
+  paytmLink   String? @db.Text
+  gpayLink    String? @db.Text
+  dynamicQR   String? @db.Text
+
+  // Status
+  status    PaymentStatus @default(PENDING)
+  txnStatus String? // Paygic transaction status
+
+  // Customer details
+  customerName   String?
+  customerEmail  String?
+  customerMobile String?
+
+  // Timestamps
+  expiresAt   DateTime? // Payment link expiry
+  successDate DateTime? // When payment succeeded
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool   Tool?   @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  bundle Bundle? @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  coupon Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+// Bundles (collections of tools)
+model Bundle {
+  id               String  @id @default(uuid())
+  name             String // "AI Content & Design Suite"
+  slug             String  @unique
+  description      String  @db.Text
+  shortDescription String?
+  icon             String? // Icon URL or emoji
+  priceMonthly     BigInt // Monthly price in paise
+  priceSixMonth    BigInt? // 6-month price in paise
+  priceYearly      BigInt? // Yearly price in paise
+  features         String? @db.Text // JSON array or comma-separated features
+  isActive         Boolean @default(true)
+  isTrending       Boolean @default(false) // Featured in trending slider
+  sortOrder        Int     @default(0)
+  targetAudience   String? // "Creators, bloggers, freelancers"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tools    BundleTool[]
+  payments Payment[]
+
+  @@map("bundles")
+}
+
+// Many-to-many relationship between Bundles and Tools
+model BundleTool {
+  id        String @id @default(uuid())
+  bundleId  String
+  toolId    String
+  sortOrder Int    @default(0)
+
+  bundle Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  tool   Tool   @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, toolId])
+  @@map("bundle_tools")
+}
+
+// Admin activity log (track cookie updates)
+model AdminLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String // "UPDATED_COOKIES", "CREATED_TOOL", etc.
+  toolId    String?
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("admin_logs")
+}
+
+model ReviewScreenshot {
+  id        String   @id @default(uuid())
+  imageUrl  String // URL to the uploaded screenshot
+  caption   String? // Optional caption/description
+  sortOrder Int      @default(0) // For ordering in gallery
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("review_screenshots")
+}
+
+// Simple key/value settings table (e.g. tracking pixels, site config)
+model AppSetting {
+  key       String   @id
+  value     String?  @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// OTP Tokens for email verification and login
+model OtpToken {
+  id          String     @id @default(uuid())
+  userId      String?
+  email       String // Store email for cases where user doesn't exist yet
+  codeHash    String // Hashed OTP code (never store plain)
+  purpose     OtpPurpose @default(EMAIL_VERIFY)
+  expiresAt   DateTime
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  verifiedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose, expiresAt])
+  @@index([userId])
+  @@map("otp_tokens")
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFY
+  LOGIN_OTP
+  PASSWORD_RESET
+}
+
+// Password Reset Tokens
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String // Hashed reset token (never store plain)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([tokenHash])
+  @@map("password_reset_tokens")
+}
