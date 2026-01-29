@@ -63,6 +63,7 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     isExistingImage ? (tool.icon || null) : null
   );
+  const [previewImageError, setPreviewImageError] = useState(false);
 
   // Helper to convert BigInt or number to number (for form display)
   const convertToNumber = (value: number | bigint | null | undefined): number => {
@@ -132,6 +133,7 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
       if (name === "icon") {
         const isImage = value && (value.startsWith('/') || value.startsWith('http'));
         setPreviewUrl(isImage ? value : null);
+        setPreviewImageError(false);
       }
       
       return updated;
@@ -200,6 +202,7 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
       // Update form data with the image URL
       setFormData((prev) => ({ ...prev, icon: imageUrl }));
       setPreviewUrl(imageUrl);
+      setPreviewImageError(false);
       setError(""); // Clear any previous errors
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -213,6 +216,7 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
   const handleRemoveImage = () => {
     setFormData((prev) => ({ ...prev, icon: "" }));
     setPreviewUrl(null);
+    setPreviewImageError(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -227,24 +231,39 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
       const url = mode === "create" ? "/api/admin/tools" : `/api/admin/tools/${tool?.id}`;
       const method = mode === "create" ? "POST" : "PUT";
 
+      // Duration-specific prices (convert to paise, only if enabled)
+      const shared1 = formData.sharedPlanDuration1MonthEnabled && formData.sharedPlanPrice1Month > 0 ? Math.round(formData.sharedPlanPrice1Month * 100) : null;
+      const shared3 = formData.sharedPlanDuration3MonthsEnabled && formData.sharedPlanPrice3Months > 0 ? Math.round(formData.sharedPlanPrice3Months * 100) : null;
+      const shared6 = formData.sharedPlanDuration6MonthsEnabled && formData.sharedPlanPrice6Months > 0 ? Math.round(formData.sharedPlanPrice6Months * 100) : null;
+      const shared12 = formData.sharedPlanDuration1YearEnabled && formData.sharedPlanPrice1Year > 0 ? Math.round(formData.sharedPlanPrice1Year * 100) : null;
+      const private1 = formData.privatePlanDuration1MonthEnabled && formData.privatePlanPrice1Month > 0 ? Math.round(formData.privatePlanPrice1Month * 100) : null;
+      const private3 = formData.privatePlanDuration3MonthsEnabled && formData.privatePlanPrice3Months > 0 ? Math.round(formData.privatePlanPrice3Months * 100) : null;
+      const private6 = formData.privatePlanDuration6MonthsEnabled && formData.privatePlanPrice6Months > 0 ? Math.round(formData.privatePlanPrice6Months * 100) : null;
+      const private12 = formData.privatePlanDuration1YearEnabled && formData.privatePlanPrice1Year > 0 ? Math.round(formData.privatePlanPrice1Year * 100) : null;
+      const sharedLegacy = formData.sharedPlanPrice > 0 ? Math.round(formData.sharedPlanPrice * 100) : null;
+      const privateLegacy = formData.privatePlanPrice > 0 ? Math.round(formData.privatePlanPrice * 100) : null;
+      const planPrices = [shared1, shared3, shared6, shared12, private1, private3, private6, private12, sharedLegacy, privateLegacy].filter((p): p is number => p != null && p > 0);
+      const priceMonthlyPaise = planPrices.length > 0 ? Math.min(...planPrices) : 0;
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          priceMonthly: Math.round(formData.priceMonthly * 100),
-          // Duration-specific prices (convert to paise, only if enabled)
-          sharedPlanPrice1Month: formData.sharedPlanDuration1MonthEnabled && formData.sharedPlanPrice1Month > 0 ? Math.round(formData.sharedPlanPrice1Month * 100) : null,
-          sharedPlanPrice3Months: formData.sharedPlanDuration3MonthsEnabled && formData.sharedPlanPrice3Months > 0 ? Math.round(formData.sharedPlanPrice3Months * 100) : null,
-          sharedPlanPrice6Months: formData.sharedPlanDuration6MonthsEnabled && formData.sharedPlanPrice6Months > 0 ? Math.round(formData.sharedPlanPrice6Months * 100) : null,
-          sharedPlanPrice1Year: formData.sharedPlanDuration1YearEnabled && formData.sharedPlanPrice1Year > 0 ? Math.round(formData.sharedPlanPrice1Year * 100) : null,
-          privatePlanPrice1Month: formData.privatePlanDuration1MonthEnabled && formData.privatePlanPrice1Month > 0 ? Math.round(formData.privatePlanPrice1Month * 100) : null,
-          privatePlanPrice3Months: formData.privatePlanDuration3MonthsEnabled && formData.privatePlanPrice3Months > 0 ? Math.round(formData.privatePlanPrice3Months * 100) : null,
-          privatePlanPrice6Months: formData.privatePlanDuration6MonthsEnabled && formData.privatePlanPrice6Months > 0 ? Math.round(formData.privatePlanPrice6Months * 100) : null,
-          privatePlanPrice1Year: formData.privatePlanDuration1YearEnabled && formData.privatePlanPrice1Year > 0 ? Math.round(formData.privatePlanPrice1Year * 100) : null,
-          // Legacy fields (for backward compatibility)
-          sharedPlanPrice: formData.sharedPlanPrice > 0 ? Math.round(formData.sharedPlanPrice * 100) : null,
-          privatePlanPrice: formData.privatePlanPrice > 0 ? Math.round(formData.privatePlanPrice * 100) : null,
+          name: formData.name.trim(),
+          slug: formData.slug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") || formData.slug.trim(),
+          toolUrl: formData.toolUrl.trim(),
+          priceMonthly: priceMonthlyPaise,
+          sharedPlanPrice1Month: shared1,
+          sharedPlanPrice3Months: shared3,
+          sharedPlanPrice6Months: shared6,
+          sharedPlanPrice1Year: shared12,
+          privatePlanPrice1Month: private1,
+          privatePlanPrice3Months: private3,
+          privatePlanPrice6Months: private6,
+          privatePlanPrice1Year: private12,
+          sharedPlanPrice: sharedLegacy,
+          privatePlanPrice: privateLegacy,
           sharedPlanEnabled: formData.sharedPlanEnabled ?? false,
           privatePlanEnabled: formData.privatePlanEnabled ?? false,
           isOutOfStock: formData.isOutOfStock ?? false,
@@ -364,7 +383,7 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
             <div className="space-y-2">
               <Label htmlFor="icon">Tool Icon</Label>
               <div className="space-y-2">
-                {previewUrl ? (
+                {previewUrl && !previewImageError ? (
                   <div className="relative inline-block">
                     <div className="relative w-20 h-20 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
                       <Image
@@ -374,6 +393,7 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
                         className="object-contain"
                         sizes="80px"
                         unoptimized={previewUrl.startsWith('http')}
+                        onError={() => setPreviewImageError(true)}
                       />
                     </div>
                     <Button
@@ -390,6 +410,11 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
                   <div className="border-2 border-gray-200 rounded-lg p-4 text-center bg-gray-50">
                     <div className="text-4xl mb-2">{formData.icon}</div>
                     <p className="text-xs text-gray-500">Emoji icon</p>
+                  </div>
+                ) : previewImageError && formData.icon ? (
+                  <div className="border-2 border-amber-200 rounded-lg p-4 text-center bg-amber-50">
+                    <p className="text-sm text-amber-800">Image could not be loaded</p>
+                    <p className="text-xs text-amber-600 mt-1">URL is still saved. You can change it below or upload a file.</p>
                   </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
@@ -469,29 +494,6 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
               <CardDescription>Set prices and features for Shared and Private plans</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Base Monthly Price - Fallback price if no plan-specific prices are set */}
-              <div className="p-4 border-2 border-blue-200 bg-blue-50/50 rounded-lg">
-                <div className="space-y-2">
-                  <Label htmlFor="priceMonthly" className="text-base font-semibold">
-                    Base Monthly Price (₹) *
-                  </Label>
-                  <Input
-                    id="priceMonthly"
-                    name="priceMonthly"
-                    type="number"
-                    step="0.01"
-                    value={formData.priceMonthly}
-                    onChange={handleChange}
-                    placeholder="199"
-                    className="h-10 text-lg font-medium"
-                    required
-                  />
-                  <p className="text-xs text-gray-600">
-                    This is the fallback price used when plan-specific prices are not set. 
-                    The minimum price shown in the tools list will be the lowest of: 1-month plan prices, base plan prices, or this base monthly price.
-                  </p>
-                </div>
-              </div>
               {/* Shared Plan */}
               <div className={`space-y-4 p-4 border rounded-lg ${formData.sharedPlanEnabled ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-gray-50/30'}`}>
                 <div className="flex items-center justify-between">

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X, Tag } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { brand } from '@/lib/brand';
 import { ToolIcon } from '@/components/tools/tool-icon';
 
 interface BundleTool {
@@ -498,7 +499,7 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
                         value={customerMobile}
                         onChange={(e) => setCustomerMobile(e.target.value)}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="+91 91553 13223"
+                        placeholder={brand.supportPhone}
                       />
                     </div>
 

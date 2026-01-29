@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +16,6 @@ import {
   getPriceForDuration,
   getEnabledDurations,
   calculateDiscountPercent,
-  getMinimumStartingPrice,
   type PlanType,
   type Duration
 } from '@/lib/price-utils';
@@ -91,9 +89,11 @@ interface ToolProductPageProps {
     sharedPlanEnabled: boolean;
     privatePlanEnabled: boolean;
   }>;
+  /** Canonical URL for sharing (from server to avoid hydration mismatch) */
+  shareUrl: string;
 }
 
-export function ToolProductPageClient({ tool, relatedTools }: ToolProductPageProps) {
+export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProductPageProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [selectedPlan, setSelectedPlan] = useState<'shared' | 'private'>(
@@ -148,17 +148,7 @@ export function ToolProductPageClient({ tool, relatedTools }: ToolProductPagePro
     router.push(`/checkout/${tool.id}?${params.toString()}`);
   };
 
-  const pathname = usePathname();
-  const [shareUrl, setShareUrl] = useState('');
-  
-  // Set share URL after hydration to avoid mismatch
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setShareUrl(window.location.href);
-    }
-  }, [pathname]);
-  
-  const shareText = `Check out ${tool.name} on ${process.env.EMAIL_FROM_NAME || 'Amit Techsolution'}`;
+  const shareText = `Check out ${tool.name} on Amit Techsolution`;
 
   const categoryLabels: Record<string, string> = {
     AI_WRITING: "AI Writing",
@@ -200,17 +190,9 @@ export function ToolProductPageClient({ tool, relatedTools }: ToolProductPagePro
           {/* Product Image/Icon */}
           <div className="bg-white rounded-xl shadow-lg p-6 lg:p-8">
             <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl mb-6 border border-purple-200">
-              {tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http://') || tool.icon.startsWith('https://')) ? (
-                <Image
-                  src={tool.icon}
-                  alt={tool.name}
-                  width={320}
-                  height={320}
-                  className="rounded-lg object-contain"
-                />
-              ) : (
-                <ToolIcon icon={tool.icon} name={tool.name} size="xl" />
-              )}
+              <div className="w-full max-w-[320px] aspect-square flex items-center justify-center">
+                <ToolIcon icon={tool.icon} name={tool.name} size="2xl" />
+              </div>
             </div>
             {/* Social Share */}
             <div className="flex items-center justify-center gap-3 pt-4 border-t border-slate-200">
@@ -520,8 +502,11 @@ export function ToolProductPageClient({ tool, relatedTools }: ToolProductPagePro
             <h2 className="text-2xl font-bold mb-6">Related Products</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedTools.map((relatedTool) => {
-                // Use professional price calculation for related tools
-                const displayPrice = getMinimumStartingPrice(relatedTool);
+                const sharedBase = getBasePrice(relatedTool, 'shared');
+                const privateBase = getBasePrice(relatedTool, 'private');
+                const sharedOne = getOneMonthPrice(relatedTool, 'shared', sharedBase);
+                const privateOne = getOneMonthPrice(relatedTool, 'private', privateBase);
+                const hasPrice = sharedOne > 0 || privateOne > 0;
                 return (
                   <Link
                     key={relatedTool.id}
@@ -538,10 +523,23 @@ export function ToolProductPageClient({ tool, relatedTools }: ToolProductPagePro
                           {relatedTool.shortDescription}
                         </p>
                       )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-purple-600">
-                          {displayPrice > 0 ? formatPrice(displayPrice) : 'Price not set'}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-2 justify-between">
+                        {hasPrice ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {sharedOne > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                Shared: {formatPrice(sharedOne)}/mo
+                              </Badge>
+                            )}
+                            {privateOne > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                Private: {formatPrice(privateOne)}/mo
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400 italic">Price not set</span>
+                        )}
                         <Button size="sm" variant="outline">
                           View <ArrowRight className="h-4 w-4 ml-1" />
                         </Button>

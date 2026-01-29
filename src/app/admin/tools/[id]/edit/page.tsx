@@ -43,7 +43,15 @@ export default async function EditToolPage({ params }: { params: Promise<{ id: s
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <CookieManager tool={tool} />
+          <CookieManager
+            tool={{
+              id: tool.id,
+              name: tool.name,
+              cookiesEncrypted: tool.cookiesEncrypted,
+              cookiesUpdatedAt: tool.cookiesUpdatedAt ?? null,
+              cookiesExpiryDate: tool.cookiesExpiryDate ?? null,
+            }}
+          />
         </CardContent>
       </Card>
     </div>

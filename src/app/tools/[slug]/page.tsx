@@ -105,5 +105,9 @@ export default async function ToolProductPageRoute({ params }: PageProps) {
   // Serialize related tools as well
   const serializedRelatedTools = relatedTools.map(t => serializeTool(t));
 
-  return <ToolProductPageClient tool={serializedTool} relatedTools={serializedRelatedTools} />;
+  // Canonical URL for share links (same on server and client to avoid hydration mismatch)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://amittechsolution.in';
+  const shareUrl = `${baseUrl.replace(/\/$/, '')}/tools/${normalizedSlug}`;
+
+  return <ToolProductPageClient tool={serializedTool} relatedTools={serializedRelatedTools} shareUrl={shareUrl} />;
 }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
-import { getMinimumStartingPrice, getBasePrice, getOneMonthPrice, type PlanType } from "@/lib/price-utils";
+import { getBasePrice, getOneMonthPrice, type PlanType } from "@/lib/price-utils";
 import { ArrowRight, Star, ShoppingCart, Eye } from "lucide-react";
 import { ToolIcon } from "./tool-icon";
 
@@ -51,29 +51,11 @@ export function ToolCard({ tool, showSubscribeButton = true }: ToolCardProps) {
     OTHER: "Other",
   };
 
-  // Get minimum starting price (validates and filters corrupted prices)
-  const displayPrice = getMinimumStartingPrice(tool);
-  
-  // Calculate discount if we have both shared and private prices (only if both are valid)
-  let originalPrice: number | null = null;
-  let discountPercent: number | null = null;
-  
-  if (tool.sharedPlanEnabled && tool.privatePlanEnabled && tool.sharedPlanPrice && tool.privatePlanPrice) {
-    const sharedPriceNum = typeof tool.sharedPlanPrice === 'bigint' ? Number(tool.sharedPlanPrice) : (tool.sharedPlanPrice || 0);
-    const privatePriceNum = typeof tool.privatePlanPrice === 'bigint' ? Number(tool.privatePlanPrice) : (tool.privatePlanPrice || 0);
-    
-    // Only show discount if both prices are valid (not corrupted)
-    const MAX_VALID_PRICE = 1000000000; // ₹10M in paise
-    if (sharedPriceNum > 0 && sharedPriceNum <= MAX_VALID_PRICE && 
-        privatePriceNum > 0 && privatePriceNum <= MAX_VALID_PRICE) {
-      const higherPrice = Math.max(sharedPriceNum, privatePriceNum);
-      const lowerPrice = Math.min(sharedPriceNum, privatePriceNum);
-      if (higherPrice > lowerPrice && lowerPrice === displayPrice) {
-        originalPrice = higherPrice;
-        discountPercent = Math.round(((higherPrice - lowerPrice) / higherPrice) * 100);
-      }
-    }
-  }
+  // Plan prices for display (no single "starting" price)
+  const sharedBase = getBasePrice(tool, 'shared');
+  const privateBase = getBasePrice(tool, 'private');
+  const sharedOneMonth = getOneMonthPrice(tool, 'shared', sharedBase);
+  const privateOneMonth = getOneMonthPrice(tool, 'private', privateBase);
 
   // Generate features from description
   const getFeatures = () => {
@@ -144,64 +126,27 @@ export function ToolCard({ tool, showSubscribeButton = true }: ToolCardProps) {
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        {/* Pricing */}
+        {/* Pricing — plan prices only, no "starting" price */}
         <div className="space-y-2">
-          <div className="flex items-baseline space-x-2 flex-wrap">
-            {displayPrice > 0 ? (
-              <div className="text-2xl font-bold gradient-text">
-                {formatPrice(displayPrice)}
+          {sharedOneMonth > 0 || privateOneMonth > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-2 text-sm">
+                {sharedOneMonth > 0 && (
+                  <Badge variant="outline" className="text-xs font-semibold">
+                    Shared: {formatPrice(sharedOneMonth)}/mo
+                  </Badge>
+                )}
+                {privateOneMonth > 0 && (
+                  <Badge variant="outline" className="text-xs font-semibold">
+                    Private: {formatPrice(privateOneMonth)}/mo
+                  </Badge>
+                )}
               </div>
-            ) : (
-              <div className="text-lg font-medium text-gray-400 italic">
-                Price not set
-              </div>
-            )}
-            {originalPrice && discountPercent && (
-              <>
-                <div className="text-sm text-slate-500 line-through">
-                  {formatPrice(originalPrice)}
-                </div>
-                <Badge className="bg-red-100 text-red-700 border-red-300 text-xs">
-                  {discountPercent}% OFF
-                </Badge>
-              </>
-            )}
-          </div>
-          <div className="text-xs text-slate-500">
-            {tool.sharedPlanEnabled && tool.privatePlanEnabled 
-              ? 'Starting from' 
-              : tool.sharedPlanEnabled 
-                ? 'Shared plan' 
-                : tool.privatePlanEnabled 
-                  ? 'Private plan' 
-                  : ''} per month
-          </div>
-          {tool.sharedPlanEnabled && tool.privatePlanEnabled && (() => {
-            // Use proper price calculation functions to get validated 1-month prices
-            const sharedBasePrice = getBasePrice(tool, 'shared');
-            const sharedOneMonthPrice = getOneMonthPrice(tool, 'shared', sharedBasePrice);
-            const privateBasePrice = getBasePrice(tool, 'private');
-            const privateOneMonthPrice = getOneMonthPrice(tool, 'private', privateBasePrice);
-            
-            // Only show if we have valid prices
-            if (sharedOneMonthPrice > 0 || privateOneMonthPrice > 0) {
-              return (
-                <div className="flex gap-2 text-xs">
-                  {sharedOneMonthPrice > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      Shared: {formatPrice(sharedOneMonthPrice)}
-                    </Badge>
-                  )}
-                  {privateOneMonthPrice > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      Private: {formatPrice(privateOneMonthPrice)}
-                    </Badge>
-                  )}
-                </div>
-              );
-            }
-            return null;
-          })()}
+              <div className="text-xs text-slate-500">per month</div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-400 italic">Price not set</div>
+          )}
         </div>
 
         {/* Action Buttons */}

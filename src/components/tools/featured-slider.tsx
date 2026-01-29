@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { ToolIcon } from './tool-icon';
 import { Sparkles, Star, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -279,22 +278,7 @@ export function FeaturedSlider({ tools, categories }: FeaturedSliderProps) {
             {/* White Card with Icon */}
             <div className="relative bg-white rounded-xl p-4 sm:p-6 lg:p-8 shadow-2xl z-10">
               <div className="w-36 h-36 sm:w-48 sm:h-48 lg:w-56 lg:h-56 flex items-center justify-center">
-                {currentTool.icon && (currentTool.icon.startsWith('/') || currentTool.icon.startsWith('http')) ? (
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={currentTool.icon}
-                      alt={currentTool.name}
-                      fill
-                      className="object-contain p-1"
-                      sizes="(max-width: 640px) 144px, (max-width: 1024px) 192px, 224px"
-                      unoptimized={currentTool.icon.startsWith('http')}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-5xl sm:text-6xl lg:text-7xl flex items-center justify-center">
-                    {currentTool.icon || "🛠️"}
-                  </div>
-                )}
+                <ToolIcon icon={currentTool.icon} name={currentTool.name} size="2xl" />
               </div>
             </div>
           </div>

@@ -18,6 +18,21 @@ export async function PUT(
     const { id } = await params;
     const data = await req.json();
 
+    // Validate required fields
+    if (!data.name?.trim()) {
+      return NextResponse.json({ error: "Tool name is required" }, { status: 400 });
+    }
+    if (!data.slug?.trim()) {
+      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
+    }
+    const slug = data.slug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    if (!slug) {
+      return NextResponse.json({ error: "Slug must contain at least one letter or number" }, { status: 400 });
+    }
+    if (!data.toolUrl?.trim()) {
+      return NextResponse.json({ error: "Tool URL is required" }, { status: 400 });
+    }
+
     // Helper function to convert price to paise with validation
     // Note: Form already sends prices in paise (multiplied by 100), so we just validate and convert to BigInt
     const convertToPaise = (price: number | string | undefined): bigint | null | undefined => {
@@ -37,13 +52,13 @@ export async function PUT(
 
     // Build base update data (always available fields)
     const baseUpdateData: any = {
-      name: data.name,
-      slug: data.slug,
+      name: data.name.trim(),
+      slug,
       description: data.description,
       shortDescription: data.shortDescription || null,
       category: data.category,
       icon: data.icon || null,
-      toolUrl: data.toolUrl,
+      toolUrl: data.toolUrl.trim(),
       priceMonthly: convertToPaise(data.priceMonthly) || BigInt(0),
       isActive: data.isActive ?? true,
       isFeatured: data.isFeatured ?? false,

@@ -271,45 +271,42 @@ export function getEnabledDurations(
 /**
  * Get minimum/starting price for a tool
  * Professional price calculation algorithm that:
- * 1. Validates all prices against reasonable limits
- * 2. Filters out corrupted/invalid data
- * 3. Returns the lowest valid starting price
- * 4. Ensures consistent pricing across the application
- * 
+ * 1. Prefers plan-specific prices (Shared/Private) so displayed price matches plan badges
+ * 2. Only uses priceMonthly when no plan prices are set (avoids showing ₹1 when plans are ₹299/₹599)
+ * 3. Validates all prices against reasonable limits
+ *
  * Priority order:
- * 1. 1-month plan-specific prices (most accurate)
- * 2. Base plan prices (sharedPlanPrice/privatePlanPrice)
- * 3. Fallback to priceMonthly
- * 
+ * 1. 1-month plan-specific prices (sharedPlanPrice1Month, privatePlanPrice1Month)
+ * 2. Base plan prices (sharedPlanPrice, privatePlanPrice)
+ * 3. Fallback to priceMonthly only when no plan prices exist
+ *
  * @param tool - Tool with price fields
  * @returns Minimum valid price in paise, or 0 if no valid price found
  */
 export function getMinimumStartingPrice(tool: ToolPriceFields): number {
   const MAX_VALID_PRICE = 1000000000; // ₹10M in paise (safety limit)
   const MIN_VALID_PRICE = 1; // Minimum 1 paise
-  const validPrices: number[] = [];
-
-  // Helper to safely validate and add price to array
-  const addIfValid = (value: number | bigint | null | undefined) => {
+  const planPrices: number[] = [];
+  const addIfValid = (value: number | bigint | null | undefined, out: number[]) => {
     if (value === null || value === undefined) return;
     const price = toNumber(value);
-    // Validate: must be positive, within reasonable bounds, and not corrupted
     if (price >= MIN_VALID_PRICE && price <= MAX_VALID_PRICE) {
-      validPrices.push(price);
+      out.push(price);
     }
   };
 
-  // Priority 1: Check 1-month plan-specific prices (most accurate starting prices)
-  addIfValid(tool.sharedPlanPrice1Month);
-  addIfValid(tool.privatePlanPrice1Month);
+  // Plan-specific prices (what we show as "Shared: ₹X" / "Private: ₹Y")
+  addIfValid(tool.sharedPlanPrice1Month, planPrices);
+  addIfValid(tool.privatePlanPrice1Month, planPrices);
+  addIfValid(tool.sharedPlanPrice, planPrices);
+  addIfValid(tool.privatePlanPrice, planPrices);
 
-  // Priority 2: Check base plan prices (if 1-month prices not set)
-  addIfValid(tool.sharedPlanPrice);
-  addIfValid(tool.privatePlanPrice);
+  // Use minimum of plan prices when any exist (e.g. admin/dashboard "Price" display)
+  if (planPrices.length > 0) {
+    return Math.min(...planPrices);
+  }
 
-  // Priority 3: Fallback to base monthly price (if no plan-specific prices set)
-  addIfValid(tool.priceMonthly);
-
-  // Return minimum valid price, or 0 if none found
-  return validPrices.length > 0 ? Math.min(...validPrices) : 0;
+  // No plan prices: fall back to base monthly price
+  addIfValid(tool.priceMonthly, planPrices);
+  return planPrices.length > 0 ? Math.min(...planPrices) : 0;
 }

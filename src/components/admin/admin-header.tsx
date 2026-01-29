@@ -4,6 +4,7 @@ import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Shield, User, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { brand } from "@/lib/brand";
 
 interface AdminHeaderProps {
   user: {
@@ -56,7 +57,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
               className="gradient-surface-accent shadow-glow font-display"
             >
               <a
-                href={`https://wa.me/919155313223?text=${encodeURIComponent('Hello! I need admin support.')}`}
+                href={`https://wa.me/${brand.whatsappNumber}?text=${encodeURIComponent('Hello! I need admin support.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2"

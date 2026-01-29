@@ -130,7 +130,7 @@ export default async function ToolsManagementPage() {
                   </div>
                   <div>
                     <p className="text-gray-600 dark:text-gray-400">
-                      {tool.sharedPlanEnabled && tool.privatePlanEnabled ? "Starting from" : "Price"}
+                      Price
                     </p>
                     <p className="font-medium">
                       {minimumPrice > 0 ? (

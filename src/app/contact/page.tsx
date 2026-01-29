@@ -16,6 +16,7 @@ import {
   Loader2
 } from "lucide-react";
 import Link from "next/link";
+import { brand } from "@/lib/brand";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -102,7 +103,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">WhatsApp Support</h3>
                     <a 
-                      href="https://wa.me/919155313223" 
+                      href={`https://wa.me/${brand.whatsappNumber}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-700 text-sm"
@@ -120,10 +121,10 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Phone Support</h3>
                     <a 
-                      href="tel:+919155313223" 
+                      href={`tel:+${brand.whatsappNumber}`}
                       className="text-blue-600 hover:text-blue-700 text-sm"
                     >
-                      +91 91553 13223
+                      {brand.supportPhone}
                     </a>
                     <p className="text-xs text-slate-500 mt-1">Mon-Fri, 9 AM - 6 PM IST</p>
                   </div>
