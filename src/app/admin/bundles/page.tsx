@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { Pencil, Plus, Package } from "lucide-react";
+import { BundleDeleteButton } from "@/components/admin/bundle-delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +18,11 @@ export default async function BundlesManagementPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Bundles Management</h2>
-          <p className="text-gray-600 dark:text-gray-400">Create and manage bundle offers</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Create and manage bundle offers</p>
         </div>
         <Button asChild>
           <Link href="/admin/bundles/new">
@@ -31,13 +32,13 @@ export default async function BundlesManagementPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-3">
         {bundles.map((b) => (
-          <Card key={b.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
+          <Card key={b.id} className="overflow-hidden">
+            <CardHeader className="py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <CardTitle className="text-lg">
                       <span className="mr-2">{b.icon || "📦"}</span>
                       {b.name}
@@ -45,20 +46,23 @@ export default async function BundlesManagementPage() {
                     {b.isActive ? <Badge>Active</Badge> : <Badge variant="secondary">Inactive</Badge>}
                     {b.isTrending && <Badge variant="default">Trending</Badge>}
                   </div>
-                  <CardDescription className="mt-1">
+                  <CardDescription className="mt-1 text-sm">
                     {b.shortDescription || b.description}
                   </CardDescription>
                 </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/admin/bundles/${b.id}/edit`}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </Link>
-                </Button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/admin/bundles/${b.id}/edit`}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </Link>
+                  </Button>
+                  <BundleDeleteButton bundleId={b.id} bundleName={b.name} showLabel />
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <CardContent className="py-3 pt-0">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-gray-600 dark:text-gray-400">Price</p>
                   <p className="font-medium">{formatPrice(b.priceMonthly)}/mo</p>

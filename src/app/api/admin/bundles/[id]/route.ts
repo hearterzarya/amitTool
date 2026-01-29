@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { serializeBundle } from "@/lib/utils";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -15,24 +16,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const data = await req.json();
     const toolIds: string[] = Array.isArray(data.toolIds) ? data.toolIds : [];
 
+    const updateData = {
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        shortDescription: data.shortDescription || null,
+        icon: data.icon || null,
+        imageUrl: data.imageUrl !== undefined ? (data.imageUrl || null) : undefined,
+        priceMonthly: data.priceMonthly,
+        priceSixMonth: data.priceSixMonth ?? null,
+        priceYearly: data.priceYearly ?? null,
+        features: data.features || null,
+        targetAudience: data.targetAudience || null,
+        isActive: data.isActive ?? true,
+        isTrending: data.isTrending ?? false,
+        sortOrder: data.sortOrder || 0,
+      };
     const updated = await prisma.$transaction(async (tx) => {
       const bundle = await tx.bundle.update({
         where: { id },
-        data: {
-          name: data.name,
-          slug: data.slug,
-          description: data.description,
-          shortDescription: data.shortDescription || null,
-          icon: data.icon || null,
-          priceMonthly: data.priceMonthly,
-          priceSixMonth: data.priceSixMonth ?? null,
-          priceYearly: data.priceYearly ?? null,
-          features: data.features || null,
-          targetAudience: data.targetAudience || null,
-          isActive: data.isActive ?? true,
-          isTrending: data.isTrending ?? false,
-          sortOrder: data.sortOrder || 0,
-        },
+        data: updateData as Parameters<typeof tx.bundle.update>[0]["data"],
       });
 
       await tx.bundleTool.deleteMany({ where: { bundleId: id } });
@@ -51,7 +54,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return bundle;
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json(serializeBundle(updated));
   } catch (error: any) {
     console.error("Error updating bundle:", error);
     if (error.code === "P2002") {

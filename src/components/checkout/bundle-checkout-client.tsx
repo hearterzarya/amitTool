@@ -32,6 +32,7 @@ interface Bundle {
   priceYearly?: number | null;
   features?: string | null;
   icon?: string | null;
+  imageUrl?: string | null;
   tools: BundleTool[];
 }
 
@@ -67,6 +68,7 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
   const [couponError, setCouponError] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [showCouponInput, setShowCouponInput] = useState(false);
+  const prevPlanRef = useRef<'monthly' | 'sixMonth' | 'yearly'>('monthly');
 
   useEffect(() => {
     if (session?.user) {
@@ -109,6 +111,59 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
 
     return () => clearInterval(interval);
   }, [merchantReferenceId, paymentStatus, router]);
+
+  // Revalidate coupon when plan changes (must be before any early return)
+  useEffect(() => {
+    const planChanged = prevPlanRef.current !== selectedPlan;
+    prevPlanRef.current = selectedPlan;
+    if (!appliedCoupon?.coupon?.code || planChanged === false) return;
+    const basePriceForCoupon = (() => {
+      const toNumber = (v: number | bigint | null | undefined): number =>
+        !v ? 0 : typeof v === 'bigint' ? Number(v) : v;
+      const priceMonthly = toNumber(bundle.priceMonthly);
+      switch (selectedPlan) {
+        case 'sixMonth': {
+          const p = toNumber(bundle.priceSixMonth);
+          return p > 0 ? p : priceMonthly * 6;
+        }
+        case 'yearly': {
+          const p = toNumber(bundle.priceYearly);
+          return p > 0 ? p : priceMonthly * 12;
+        }
+        default:
+          return priceMonthly;
+      }
+    })();
+    if (basePriceForCoupon <= 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/coupons/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: appliedCoupon.coupon.code,
+            amount: Math.floor(basePriceForCoupon),
+          }),
+        });
+        if (cancelled) return;
+        if (response.ok) {
+          const data = await response.json();
+          if (data.valid) {
+            setAppliedCoupon(data);
+            setCouponError('');
+          } else {
+            setAppliedCoupon(null);
+            setCouponCode('');
+            setCouponError(data.error || 'Coupon is no longer valid for this purchase');
+          }
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error revalidating coupon:', error);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedPlan, appliedCoupon, bundle.priceMonthly, bundle.priceSixMonth, bundle.priceYearly]);
 
   if (status === 'loading') {
     return (
@@ -156,54 +211,6 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
     finalPrice = basePrice - appliedCoupon.discountAmount;
     if (finalPrice < 0) finalPrice = 0; // Can't be negative
   }
-
-  // Revalidate coupon when plan changes
-  const prevPlanRef = useRef(selectedPlan);
-  
-  useEffect(() => {
-    const planChanged = prevPlanRef.current !== selectedPlan;
-    
-    if (appliedCoupon?.coupon?.code && basePrice > 0 && planChanged) {
-      console.log('Plan changed, revalidating coupon...');
-      
-      const revalidateCoupon = async () => {
-        try {
-          const amountInPaise = Math.floor(basePrice);
-          console.log('Revalidating coupon with new amount:', amountInPaise);
-          
-          const response = await fetch('/api/coupons/validate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: appliedCoupon.coupon.code,
-              amount: amountInPaise,
-            }),
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.valid) {
-              console.log('Coupon revalidated successfully, new discount:', data.discountAmount);
-              setAppliedCoupon(data);
-              setCouponError('');
-            } else {
-              console.log('Coupon no longer valid:', data.error);
-              setAppliedCoupon(null);
-              setCouponCode('');
-              setCouponError(data.error || 'Coupon is no longer valid for this purchase');
-            }
-          }
-        } catch (error) {
-          console.error('Error revalidating coupon:', error);
-        }
-      };
-      
-      const timeoutId = setTimeout(revalidateCoupon, 500);
-      return () => clearTimeout(timeoutId);
-    }
-    
-    prevPlanRef.current = selectedPlan;
-  }, [selectedPlan, basePrice, appliedCoupon]);
 
   // Handle coupon validation
   const handleApplyCoupon = async () => {
@@ -348,19 +355,28 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Bundle Info */}
           <div className="lg:col-span-2">
-            <Card className="mb-6">
-              <CardHeader>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-5xl">{bundle.icon || "📦"}</div>
-                  <div>
-                    <CardTitle className="text-3xl">{bundle.name}</CardTitle>
-                    <CardDescription className="text-base mt-2">
-                      {bundle.shortDescription || bundle.description}
-                    </CardDescription>
+            <Card className="mb-6 overflow-hidden p-0">
+              {/* Full-width bundle image at top */}
+              <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden">
+                {bundle.imageUrl ? (
+                  <img
+                    src={bundle.imageUrl}
+                    alt=""
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-7xl sm:text-8xl">
+                    {bundle.icon || "📦"}
                   </div>
-                </div>
+                )}
+              </div>
+              <CardHeader className="pt-5 pb-2">
+                <CardTitle className="text-2xl sm:text-3xl">{bundle.name}</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  {bundle.shortDescription || bundle.description}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 {features.length > 0 && (
                   <div className="mb-6">
                     <h3 className="font-semibold text-lg mb-3">Bundle Features:</h3>

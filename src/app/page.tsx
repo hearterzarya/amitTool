@@ -2,9 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, MessageCircle, Users, Zap, CheckCircle2, Rocket, TrendingUp } from "lucide-react";
+import { ArrowRight, MessageCircle, Users, Zap, CheckCircle2, Rocket } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { TrendingBundlesSlider } from "@/components/tools/trending-bundles-slider";
 import { ToolIcon } from "@/components/tools/tool-icon";
 import { ToolNamesSlider } from "@/components/tools/tool-names-slider";
 import { IndividualToolsSearch } from "@/components/tools/individual-tools-search";
@@ -17,20 +16,6 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const contactInfo = await getContactInfo();
-  // Fetch trending bundles
-  let trendingBundles: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    description: string;
-    shortDescription: string | null;
-    priceMonthly: number;
-    priceSixMonth: number | null;
-    priceYearly: number | null;
-    features: string | null;
-    icon: string | null;
-  }> = [];
-
   // Fetch all bundles
   let allBundles: Array<{
     id: string;
@@ -43,6 +28,7 @@ export default async function HomePage() {
     priceYearly: number | null;
     features: string | null;
     icon: string | null;
+    imageUrl?: string | null;
   }> = [];
 
   // Fetch active tools
@@ -57,24 +43,6 @@ export default async function HomePage() {
     // Try to fetch bundles (may not exist yet)
     try {
       if ('bundle' in prisma && typeof (prisma as any).bundle?.findMany === 'function') {
-        trendingBundles = await (prisma as any).bundle.findMany({
-          where: { isActive: true, isTrending: true },
-          orderBy: { sortOrder: 'asc' },
-          take: 5,
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            shortDescription: true,
-            priceMonthly: true,
-            priceSixMonth: true,
-            priceYearly: true,
-            features: true,
-            icon: true,
-          },
-        });
-
         allBundles = await (prisma as any).bundle.findMany({
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
@@ -90,6 +58,7 @@ export default async function HomePage() {
             priceYearly: true,
             features: true,
             icon: true,
+            imageUrl: true,
           },
         });
       }
@@ -169,51 +138,48 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Trending Bundles Slider */}
-      {trendingBundles.length > 0 && (
-        <section className="section-padding relative">
-          <div className="absolute inset-0 gradient-surface-warm"></div>
-          <div className="container-custom relative z-10">
-            <TrendingBundlesSlider bundles={trendingBundles.map(b => serializeBundle(b))} />
-          </div>
-        </section>
-      )}
-
       {/* Bundles Section */}
-      <section className="section-padding relative">
+      <section className="section-padding relative py-12 md:py-16">
         <div className="absolute inset-0 gradient-surface-light"></div>
         <div className="container-custom relative z-10">
-          <div className="text-center mb-16 animate-fade-in-up">
-            <Badge className="mb-6 gradient-surface-accent text-white shadow-soft-md">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Smart Bundles
-            </Badge>
-            <h2 className="text-h1 mb-6 text-gradient-primary">
-              5 Smart AI Bundles
+          <div className="text-center mb-8 animate-fade-in-up">
+            <h2 className="text-h1 mb-3 text-gradient-primary">
+              Smart AI Bundles
             </h2>
-            <p className="text-xl text-foreground/70 max-w-3xl mx-auto mb-12 font-body">
+            <p className="text-lg text-foreground/70 max-w-3xl mx-auto mb-6 font-body">
               Built for Real Work in India — Affordable, Instant Access
             </p>
-            <div className="w-32 h-1 gradient-surface-primary mx-auto rounded-full"></div>
+            <div className="w-24 h-0.5 gradient-surface-primary mx-auto rounded-full"></div>
           </div>
 
           {allBundles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {allBundles.map((bundle, index) => {
                 const serializedBundle = serializeBundle(bundle);
                 return (
                 <Card 
                   key={serializedBundle.id}
-                  className="group relative overflow-hidden h-full flex flex-col hover-lift"
+                  className="group relative overflow-hidden h-full flex flex-col hover-lift p-0"
                 >
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-5xl">{serializedBundle.icon || "📦"}</div>
-                      <Badge variant="accent" className="shadow-soft">
-                        Bundle
-                      </Badge>
-                    </div>
-                    <CardTitle className="text-2xl mb-3 font-display">{serializedBundle.name}</CardTitle>
+                  {/* Full-width image / icon at top of card */}
+                  <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden">
+                    {serializedBundle.imageUrl ? (
+                      <img
+                        src={serializedBundle.imageUrl}
+                        alt=""
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-6xl sm:text-7xl">
+                        {serializedBundle.icon || "📦"}
+                      </div>
+                    )}
+                    <Badge variant="accent" className="absolute top-3 right-3 shadow-soft">
+                      Bundle
+                    </Badge>
+                  </div>
+                  <CardHeader className="pb-3 pt-4">
+                    <CardTitle className="text-xl mb-2 font-display">{serializedBundle.name}</CardTitle>
                     <CardDescription className="text-base font-body text-foreground/70">
                       {serializedBundle.shortDescription || serializedBundle.description}
                     </CardDescription>
@@ -257,23 +223,23 @@ export default async function HomePage() {
       </section>
 
       {/* Individual Tools Section */}
-      <section className="section-padding bg-white">
+      <section className="section-padding bg-white py-10 md:py-12">
         <div className="container-width">
-          <div className="text-center mb-12 md:mb-16">
-            <Badge className="mb-4 gradient-surface-primary text-white font-semibold shadow-soft-md">
+          <div className="text-center mb-6 md:mb-8">
+            <Badge className="mb-3 gradient-surface-primary text-white font-semibold shadow-soft-md">
               Individual Tools
             </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-slate-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 text-slate-900">
               Buy Any Premium Tool Individually
             </h2>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+            <p className="text-base text-slate-600 max-w-3xl mx-auto">
               No bundle required — Explore and purchase individual tools instantly, with simple pricing and secure access.
             </p>
           </div>
 
           <IndividualToolsSearch tools={tools} />
 
-          <div className="text-center mt-12">
+          <div className="text-center mt-8">
             <Button 
               asChild 
               size="lg" 

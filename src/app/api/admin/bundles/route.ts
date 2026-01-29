@@ -22,6 +22,7 @@ export async function POST(req: Request) {
           description: data.description,
           shortDescription: data.shortDescription || null,
           icon: data.icon || null,
+          imageUrl: data.imageUrl || null,
           priceMonthly: data.priceMonthly,
           priceSixMonth: data.priceSixMonth ?? null,
           priceYearly: data.priceYearly ?? null,

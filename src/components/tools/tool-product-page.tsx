@@ -187,12 +187,20 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Product Image/Icon */}
+          {/* Product Image/Icon - full width in container */}
           <div className="bg-white rounded-xl shadow-lg p-6 lg:p-8">
-            <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl mb-6 border border-purple-200">
-              <div className="w-full max-w-[320px] aspect-square flex items-center justify-center">
-                <ToolIcon icon={tool.icon} name={tool.name} size="2xl" />
-              </div>
+            <div className="aspect-square w-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl mb-6 border border-purple-200 overflow-hidden">
+              {tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http')) ? (
+                <img
+                  src={tool.icon}
+                  alt={tool.name}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <span className="text-8xl sm:text-9xl lg:text-[10rem] select-none">
+                  {tool.icon || "🛠️"}
+                </span>
+              )}
             </div>
             {/* Social Share */}
             <div className="flex items-center justify-center gap-3 pt-4 border-t border-slate-200">

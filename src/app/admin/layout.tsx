@@ -31,14 +31,14 @@ export default async function AdminLayout({
       {/* Admin Header */}
       <AdminHeader user={{ name: userName, email: userEmail }} />
       
-      <div className="container-custom py-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="container-custom py-6 md:py-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Sidebar */}
           <AdminSidebar />
 
           {/* Main Content */}
           <main className="lg:col-span-4">
-            <Card className="p-8 lg:p-10">
+            <Card className="p-5 lg:p-6">
               {children}
             </Card>
           </main>

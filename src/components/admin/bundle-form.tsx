@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Upload, X } from "lucide-react";
 
 type ToolPick = { id: string; name: string; slug: string };
 
@@ -18,6 +19,7 @@ export function BundleForm(props: {
     description: string;
     shortDescription: string | null;
     icon: string | null;
+    imageUrl?: string | null;
     priceMonthly: number;
     priceSixMonth: number | null;
     priceYearly: number | null;
@@ -33,6 +35,9 @@ export function BundleForm(props: {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imagePreviewError, setImagePreviewError] = useState(false);
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
 
   const [toolQuery, setToolQuery] = useState("");
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>(props.initialToolIds || []);
@@ -43,6 +48,7 @@ export function BundleForm(props: {
     description: props.bundle?.description ?? "",
     shortDescription: props.bundle?.shortDescription ?? "",
     icon: props.bundle?.icon ?? "",
+    imageUrl: props.bundle?.imageUrl ?? "",
     priceMonthly: props.bundle ? (typeof props.bundle.priceMonthly === 'bigint' ? Number(props.bundle.priceMonthly) : props.bundle.priceMonthly) / 100 : 0,
     priceSixMonth: props.bundle?.priceSixMonth ? (typeof props.bundle.priceSixMonth === 'bigint' ? Number(props.bundle.priceSixMonth) : props.bundle.priceSixMonth) / 100 : 0,
     priceYearly: props.bundle?.priceYearly ? (typeof props.bundle.priceYearly === 'bigint' ? Number(props.bundle.priceYearly) : props.bundle.priceYearly) / 100 : 0,
@@ -74,6 +80,45 @@ export function BundleForm(props: {
     setForm((p) => ({ ...p, slug }));
   };
 
+  const handleBundleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file (PNG, JPG, GIF, WebP, SVG).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be under 5MB.");
+      return;
+    }
+    setError(null);
+    setImageUploading(true);
+    setImagePreviewError(false);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/bundles/upload-image", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+      const data = await res.json();
+      if (!data.url) throw new Error("No URL returned");
+      setForm((p) => ({ ...p, imageUrl: data.url }));
+    } catch (err: any) {
+      setError(err.message || "Failed to upload image");
+    } finally {
+      setImageUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeBundleImage = () => {
+    setForm((p) => ({ ...p, imageUrl: "" }));
+    setImagePreviewError(false);
+    if (imageFileInputRef.current) imageFileInputRef.current.value = "";
+  };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -93,6 +138,7 @@ export function BundleForm(props: {
           description: form.description,
           shortDescription: form.shortDescription || null,
           icon: form.icon || null,
+          imageUrl: form.imageUrl || null,
           priceMonthly: Math.round(form.priceMonthly * 100),
           priceSixMonth: form.priceSixMonth > 0 ? Math.round(form.priceSixMonth * 100) : null,
           priceYearly: form.priceYearly > 0 ? Math.round(form.priceYearly * 100) : null,
@@ -126,12 +172,12 @@ export function BundleForm(props: {
       )}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle>Bundle Details</CardTitle>
           <CardDescription>Name, pricing, and visibility</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="name">Bundle Name *</Label>
               <Input
@@ -158,7 +204,7 @@ export function BundleForm(props: {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="shortDescription">Short Description</Label>
             <Input
               id="shortDescription"
@@ -167,7 +213,7 @@ export function BundleForm(props: {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="description">Full Description *</Label>
             <textarea
               id="description"
@@ -179,8 +225,8 @@ export function BundleForm(props: {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="space-y-1.5">
               <Label htmlFor="priceMonthly">Monthly Price (₹)</Label>
               <Input
                 id="priceMonthly"
@@ -221,8 +267,8 @@ export function BundleForm(props: {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <Label htmlFor="icon">Icon (emoji or URL)</Label>
               <Input
                 id="icon"
@@ -231,7 +277,67 @@ export function BundleForm(props: {
                 placeholder="📦 or https://..."
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label>Product Image (bundle card)</Label>
+              <div className="space-y-2">
+                {form.imageUrl && !imagePreviewError ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={form.imageUrl}
+                      alt="Bundle preview"
+                      className="h-24 w-24 rounded-lg border border-input object-cover"
+                      onError={() => setImagePreviewError(true)}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                      onClick={removeBundleImage}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-input rounded-lg p-4 text-center bg-muted/30">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-2">Upload product image</p>
+                    <p className="text-xs text-muted-foreground">PNG, JPG, GIF, WebP, SVG (max 5MB)</p>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => imageFileInputRef.current?.click()}
+                    disabled={imageUploading}
+                  >
+                    {imageUploading ? "Uploading..." : form.imageUrl ? "Change Image" : "Select Image"}
+                  </Button>
+                  <input
+                    ref={imageFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml"
+                    onChange={handleBundleImageChange}
+                    className="hidden"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="imageUrl" className="text-xs text-muted-foreground">Or paste image URL:</Label>
+                  <Input
+                    id="imageUrl"
+                    value={form.imageUrl}
+                    onChange={(e) => { setForm((p) => ({ ...p, imageUrl: e.target.value })); setImagePreviewError(false); }}
+                    placeholder="https://..."
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <Label htmlFor="targetAudience">Target Audience</Label>
               <Input
                 id="targetAudience"
@@ -283,12 +389,12 @@ export function BundleForm(props: {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle>Bundle Tools</CardTitle>
           <CardDescription>Select which tools are included in this bundle.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
             <Label htmlFor="toolSearch">Search tools</Label>
             <Input
               id="toolSearch"

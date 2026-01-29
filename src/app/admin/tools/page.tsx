@@ -9,8 +9,23 @@ import { Pencil, Plus, AlertCircle, CheckCircle, Wrench, Trash2 } from "lucide-r
 import { ToolIcon } from "@/components/tools/tool-icon";
 import { DeleteToolButton } from "@/components/admin/delete-tool-button";
 
-export default async function ToolsManagementPage() {
+export default async function ToolsManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string }>;
+}) {
+  const params = await searchParams;
+  const searchQuery = (params.search ?? "").trim().toLowerCase();
+
   const tools = await prisma.tool.findMany({
+    where: searchQuery
+      ? {
+          OR: [
+            { name: { contains: searchQuery, mode: "insensitive" } },
+            { slug: { contains: searchQuery, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
     orderBy: { sortOrder: "asc" },
     include: {
       subscriptions: {

@@ -347,6 +347,7 @@ model Bundle {
   description      String  @db.Text
   shortDescription String?
   icon             String? // Icon URL or emoji
+  imageUrl         String? // Product image URL for bundle card
   priceMonthly     BigInt // Monthly price in paise
   priceSixMonth    BigInt? // 6-month price in paise
   priceYearly      BigInt? // Yearly price in paise

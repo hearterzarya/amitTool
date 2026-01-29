@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { ToolCard } from "@/components/tools/tool-card";
-import { FeaturedSlider } from "@/components/tools/featured-slider";
 import { CategoryToolsSearch } from "@/components/tools/category-tools-search";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
@@ -36,7 +35,6 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 
   // Fetch all tools from database
   let allTools: any[] = [];
-  let featuredTools: any[] = [];
   let categories: Array<{ value: string; label: string; count: number }> = [];
   let totalCount = 0;
 
@@ -89,34 +87,6 @@ export default async function ToolsPage({ searchParams }: PageProps) {
         sortOrder: true,
       },
     });
-
-    // Fetch featured tools for slider (gracefully handle if column doesn't exist yet)
-    try {
-      // Use type assertion to bypass TypeScript check if Prisma client not regenerated
-      featuredTools = await (prisma.tool.findMany as any)({
-        where: {
-          isActive: true,
-          isFeatured: true,
-        },
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      });
-      console.log('Featured tools found:', featuredTools.length);
-    } catch (featuredError: any) {
-      // If isFeatured column doesn't exist yet, just use empty array
-      // User needs to run: npx prisma generate && npx prisma db push
-      if (featuredError?.message?.includes('isFeatured') || 
-          featuredError?.code === 'P2021' ||
-          featuredError?.message?.includes('column') ||
-          featuredError?.message?.includes('Unknown column')) {
-        console.warn('isFeatured column not found. Run: npx prisma generate && npx prisma db push');
-        featuredTools = [];
-      } else {
-        console.error('Error fetching featured tools:', featuredError);
-        featuredTools = [];
-      }
-    }
 
     totalCount = await prisma.tool.count({ where: { isActive: true } });
 
@@ -179,25 +149,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
         </section>
 
         {/* Main Content */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          {/* Featured Tools Slider */}
-          {!validCategory && !searchQuery && (
-            <>
-              {featuredTools.length > 0 ? (
-                <FeaturedSlider 
-                  tools={featuredTools.map(t => serializeTool(t))} 
-                  categories={categories.map(c => ({ value: c.value, label: c.label }))}
-                />
-              ) : (
-                <div className="mb-12 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-                  <p className="text-yellow-800 text-sm">
-                    No featured tools yet. Go to <Link href="/admin/tools" className="underline font-medium">Admin Panel</Link> to mark tools as featured.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           {/* Category Sections */}
           {!searchQuery && (
             <>
@@ -206,9 +158,9 @@ export default async function ToolsPage({ searchParams }: PageProps) {
                 if (categoryTools.length === 0) return null;
 
                 return (
-                  <div key={category.value} className="mb-12 animate-fade-in-up" style={{ animationDelay: `${catIdx * 0.1}s` }}>
+                  <div key={category.value} className="mb-8 animate-fade-in-up" style={{ animationDelay: `${catIdx * 0.1}s` }}>
                     {/* Category Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                       <div className="flex items-center space-x-3">
                         <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
                           {category.label}
@@ -242,7 +194,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
           {/* Search Results or Filtered Results */}
           {(searchQuery || validCategory) && (
             <div className="animate-fade-in-up">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">
                     {validCategory
@@ -264,7 +216,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {allTools.map((tool, idx) => (
                   <div
                     key={tool.id}
