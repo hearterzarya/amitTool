@@ -25,6 +25,7 @@ function isGoogleOAuthConfigured(): boolean {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   debug: process.env.NODE_ENV === 'development', // Enable debug logging in development
+  // For Vercel: set AUTH_TRUST_HOST=true in env so NextAuth trusts X-Forwarded-Host
   providers: [
     // Only add Google Provider if credentials are configured
     ...(isGoogleOAuthConfigured() ? [

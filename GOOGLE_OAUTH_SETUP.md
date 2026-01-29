@@ -50,6 +50,18 @@ https://amittechsolution.in/api/auth/callback/google
 - Make sure `NEXTAUTH_URL=https://amittechsolution.in` is set in your production environment variables
 - Add `https://amittechsolution.in/api/auth/callback/google` to Google Cloud Console
 
+### Step 3b: Vercel / Production Login (Credentials + Google)
+
+If login works locally but not on Vercel, set these in **Vercel → Project → Settings → Environment Variables**:
+
+| Variable | Value | Notes |
+|----------|--------|--------|
+| `NEXTAUTH_URL` | `https://amittechsolution.in` | Must match your live domain (no trailing slash) |
+| `NEXTAUTH_SECRET` | (same as local) | Required for session encryption |
+| `AUTH_TRUST_HOST` | `true` | Lets NextAuth trust Vercel’s host header so cookies/redirects work |
+
+Redeploy after changing env vars.
+
 ### Step 4: Verify Your Configuration
 
 1. Make sure `NEXTAUTH_URL` matches your actual domain

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -85,17 +85,17 @@ function LoginForm() {
           setEmailNotVerified(false);
         }
       } else {
-        // Fetch session immediately after successful login
-        const response = await fetch('/api/auth/session', { cache: 'no-store' });
-        const session = await response.json();
-        const userRole = (session?.user as any)?.role;
-        
-        if (userRole === 'ADMIN') {
-          router.push("/admin");
-        } else {
-          router.push("/dashboard");
+        // Give the browser time to apply the session cookie from signIn response
+        await new Promise((r) => setTimeout(r, 200));
+        let session = await getSession();
+        if (!session) {
+          await new Promise((r) => setTimeout(r, 300));
+          session = await getSession();
         }
-        router.refresh();
+        const userRole = (session?.user as { role?: string })?.role;
+        const target = userRole === 'ADMIN' ? '/admin' : '/dashboard';
+        // Full page redirect so the next request sends the cookie (fixes Vercel/production)
+        window.location.href = target;
       }
     } catch (error) {
       setError("Something went wrong");
