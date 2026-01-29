@@ -2,6 +2,7 @@
 
 import { MessageCircle } from 'lucide-react';
 import { brand } from '@/lib/brand';
+import { useContactInfo } from '@/components/providers/contact-info-provider';
 
 interface WhatsAppButtonProps {
   phoneNumber?: string;
@@ -9,10 +10,12 @@ interface WhatsAppButtonProps {
 }
 
 export function WhatsAppButton({ 
-  phoneNumber = brand.whatsappNumber,
+  phoneNumber,
   message = brand.whatsappMessage
 }: WhatsAppButtonProps) {
-  const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+  const contactInfo = useContactInfo();
+  const number = phoneNumber ?? contactInfo.whatsappNumber;
+  const whatsappUrl = `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
 
   return (
     <a

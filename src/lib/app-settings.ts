@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { brand } from "@/lib/brand";
 
-export type AppSettingKey = "meta_pixel_id" | "meta_pixel_enabled";
+export type AppSettingKey = "meta_pixel_id" | "meta_pixel_enabled" | "whatsapp_number";
 
 // Cache table existence check to avoid repeated queries
 let tableExistsCache: boolean | null = null;
@@ -63,5 +64,29 @@ export async function getMetaPixelConfig(): Promise<{ enabled: boolean; pixelId:
     }
     throw e;
   }
+}
+
+/** Contact info (WhatsApp / support) from admin settings or brand fallback */
+export type ContactInfo = { whatsappNumber: string; supportPhone: string };
+
+export async function getContactInfo(): Promise<ContactInfo> {
+  try {
+    const raw = await getAppSettingValue("whatsapp_number");
+    const digits = raw?.replace(/\D/g, "") ?? "";
+    if (digits.length >= 10) {
+      const whatsappNumber = digits.startsWith("91") ? digits : `91${digits}`;
+      const supportPhone =
+        whatsappNumber.length === 12 && whatsappNumber.startsWith("91")
+          ? `+91 ${whatsappNumber.slice(2, 7)} ${whatsappNumber.slice(7)}`
+          : `+${whatsappNumber}`;
+      return { whatsappNumber, supportPhone };
+    }
+  } catch {
+    // fallback to brand
+  }
+  return {
+    whatsappNumber: brand.whatsappNumber,
+    supportPhone: brand.supportPhone,
+  };
 }
 

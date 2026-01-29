@@ -6,12 +6,14 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettingsPage() {
   let metaPixelId: { value: string | null } | null = null;
   let metaPixelEnabled: { value: string | null } | null = null;
+  let whatsappNumber: { value: string | null } | null = null;
   let tableMissing = false;
 
   try {
-    [metaPixelId, metaPixelEnabled] = await Promise.all([
+    [metaPixelId, metaPixelEnabled, whatsappNumber] = await Promise.all([
       prisma.appSetting.findUnique({ where: { key: "meta_pixel_id" } }),
       prisma.appSetting.findUnique({ where: { key: "meta_pixel_enabled" } }),
+      prisma.appSetting.findUnique({ where: { key: "whatsapp_number" } }),
     ]);
   } catch (e: any) {
     if (e?.code === "P2021" || String(e?.message || "").includes("app_settings")) {
@@ -37,6 +39,7 @@ export default async function AdminSettingsPage() {
       <AdminSettingsForm
         initialMetaPixelId={metaPixelId?.value ?? ""}
         initialMetaPixelEnabled={(metaPixelEnabled?.value ?? "") === "true"}
+        initialWhatsappNumber={whatsappNumber?.value ?? ""}
       />
     </div>
   );

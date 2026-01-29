@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Outfit, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { brand } from "@/lib/brand";
+import { getContactInfo } from "@/lib/app-settings";
 
 import { SessionProvider } from "@/components/providers/session-provider";
+import { ContactInfoProvider } from "@/components/providers/contact-info-provider";
 import { ConditionalNavbar } from "@/components/layout/conditional-navbar";
 import { AnalyticsScripts } from "@/components/layout/analytics-scripts";
 
@@ -24,19 +26,22 @@ export const metadata: Metadata = {
   description: brand.description,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const contactInfo = await getContactInfo();
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${outfit.variable} ${dmSans.variable} font-body`} suppressHydrationWarning>
         <AnalyticsScripts />
-        <SessionProvider>
-          <ConditionalNavbar />
-          {children}
-        </SessionProvider>
+        <ContactInfoProvider initialContactInfo={contactInfo}>
+          <SessionProvider>
+            <ConditionalNavbar />
+            {children}
+          </SessionProvider>
+        </ContactInfoProvider>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield, User, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
+import { useContactInfo } from "@/components/providers/contact-info-provider";
 
 interface AdminHeaderProps {
   user: {
@@ -14,6 +15,7 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ user }: AdminHeaderProps) {
+  const contactInfo = useContactInfo();
   return (
     <header className="sticky top-0 z-50 bg-background/98 backdrop-blur-xl border-b-4 border-foreground shadow-brutal-md">
       <div className="container-custom">
@@ -57,7 +59,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
               className="gradient-surface-accent shadow-glow font-display"
             >
               <a
-                href={`https://wa.me/${brand.whatsappNumber}?text=${encodeURIComponent('Hello! I need admin support.')}`}
+                href={`https://wa.me/${contactInfo.whatsappNumber}?text=${encodeURIComponent('Hello! I need admin support.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2"

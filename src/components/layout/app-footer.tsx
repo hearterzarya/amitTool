@@ -1,9 +1,13 @@
+'use client';
+
 import Link from "next/link";
 import { brand } from "@/lib/brand";
 import { Zap, MessageCircle, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useContactInfo } from "@/components/providers/contact-info-provider";
 
 export function AppFooter() {
+  const contactInfo = useContactInfo();
   const currentYear = new Date().getFullYear();
 
   const footerSections = [
@@ -21,7 +25,7 @@ export function AppFooter() {
         { href: "/faq", label: "FAQ" },
         { href: "/contact", label: "Contact Us" },
         {
-          href: `https://wa.me/${brand.whatsappNumber}`,
+          href: `https://wa.me/${contactInfo.whatsappNumber}`,
           label: "WhatsApp Support",
           external: true,
         },
@@ -73,14 +77,14 @@ export function AppFooter() {
                   <span>{brand.supportEmail}</span>
                 </a>
                 <a
-                  href={`tel:${brand.supportPhone}`}
+                  href={`tel:${contactInfo.supportPhone}`}
                   className="flex items-center space-x-3 text-foreground/60 hover:text-foreground transition-colors text-sm font-body"
                 >
                   <Phone className="h-4 w-4" />
-                  <span>{brand.supportPhone}</span>
+                  <span>{contactInfo.supportPhone}</span>
                 </a>
                 <a
-                  href={`https://wa.me/${brand.whatsappNumber}`}
+                  href={`https://wa.me/${contactInfo.whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-3 text-foreground/60 hover:text-foreground transition-colors text-sm font-body"
@@ -144,7 +148,7 @@ export function AppFooter() {
                   Terms
                 </Link>
                 <a
-                  href={`https://wa.me/${brand.whatsappNumber}`}
+                  href={`https://wa.me/${contactInfo.whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground/50 hover:text-foreground transition-colors text-sm font-body"

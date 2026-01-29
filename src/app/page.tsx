@@ -10,11 +10,13 @@ import { ToolNamesSlider } from "@/components/tools/tool-names-slider";
 import { IndividualToolsSearch } from "@/components/tools/individual-tools-search";
 import { formatPrice, serializeBundle } from "@/lib/utils";
 import { brand } from "@/lib/brand";
+import { getContactInfo } from "@/lib/app-settings";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  const contactInfo = await getContactInfo();
   // Fetch trending bundles
   let trendingBundles: Array<{
     id: string;
@@ -306,7 +308,7 @@ export default async function HomePage() {
               className="gradient-surface-accent shadow-glow font-display"
             >
               <a
-                href={`https://wa.me/${brand.whatsappNumber}?text=${encodeURIComponent(brand.whatsappMessage)}`}
+                href={`https://wa.me/${contactInfo.whatsappNumber}?text=${encodeURIComponent(brand.whatsappMessage)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2"
@@ -341,7 +343,7 @@ export default async function HomePage() {
               className="gradient-surface-accent shadow-glow font-display"
             >
               <a
-                href={`https://wa.me/${brand.whatsappNumber}?text=${encodeURIComponent("Hi! I want to join the community for tool updates and offers.")}`}
+                href={`https://wa.me/${contactInfo.whatsappNumber}?text=${encodeURIComponent("Hi! I want to join the community for tool updates and offers.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2"

@@ -1,6 +1,7 @@
 import { sendEmail, generateOrderConfirmationEmailHtml, generateBundleOrderConfirmationEmailHtml } from './email';
 import { prisma } from './prisma';
 import { brand } from './brand';
+import { getContactInfo } from './app-settings';
 
 /**
  * Send order confirmation email after successful payment
@@ -47,6 +48,7 @@ export async function sendOrderConfirmationEmail(paymentId: string): Promise<voi
 
     if (payment.toolId && payment.tool) {
       // Single tool purchase
+      const contactInfo = await getContactInfo();
       const planType = (payment.planType || 'SHARED') as 'SHARED' | 'PRIVATE';
       
       // Get subscription details if available
@@ -102,6 +104,7 @@ export async function sendOrderConfirmationEmail(paymentId: string): Promise<voi
           activationStatus: activationStatus as 'ACTIVE' | 'PENDING',
           credentials,
           dashboardUrl,
+          whatsappNumber: contactInfo.whatsappNumber,
         }),
       });
     } else if (payment.bundleId && payment.bundle) {

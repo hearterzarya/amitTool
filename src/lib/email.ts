@@ -340,6 +340,7 @@ export function generateOrderConfirmationEmailHtml({
   activationStatus,
   credentials,
   dashboardUrl,
+  whatsappNumber,
 }: {
   customerName: string;
   orderNumber: string;
@@ -350,7 +351,9 @@ export function generateOrderConfirmationEmailHtml({
   activationStatus?: 'ACTIVE' | 'PENDING';
   credentials?: { email: string; password: string };
   dashboardUrl: string;
+  whatsappNumber?: string;
 }): string {
+  const waNumber = whatsappNumber ?? brand.whatsappNumber;
   // Use formatPrice for consistent INR formatting across the application
   const amountInRupees = formatPrice(amount);
   const formattedDate = paymentDate.toLocaleString('en-IN', { 
@@ -467,7 +470,7 @@ export function generateOrderConfirmationEmailHtml({
       </div>
       
       <div style="margin-top: 15px; text-align: center;">
-        <a href="https://wa.me/${brand.whatsappNumber}?text=${encodeURIComponent(`Hi! I just purchased a Private Plan. Order: ${orderNumber}`)}" 
+        <a href="https://wa.me/${waNumber}?text=${encodeURIComponent(`Hi! I just purchased a Private Plan. Order: ${orderNumber}`)}" 
            style="display: inline-block; background: #25D366; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
           Contact Support on WhatsApp
         </a>

@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 export function AdminSettingsForm(props: {
   initialMetaPixelId: string;
   initialMetaPixelEnabled: boolean;
+  initialWhatsappNumber: string;
 }) {
   const [metaPixelId, setMetaPixelId] = useState(props.initialMetaPixelId);
   const [metaPixelEnabled, setMetaPixelEnabled] = useState(props.initialMetaPixelEnabled);
+  const [whatsappNumber, setWhatsappNumber] = useState(props.initialWhatsappNumber);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -25,7 +27,7 @@ export function AdminSettingsForm(props: {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metaPixelId, metaPixelEnabled }),
+        body: JSON.stringify({ metaPixelId, metaPixelEnabled, whatsappNumber }),
       });
 
       if (!res.ok) {
@@ -50,9 +52,35 @@ export function AdminSettingsForm(props: {
       )}
       {saved && (
         <div className="bg-green-50 text-green-800 text-sm p-3 rounded-md border border-green-200">
-          Settings saved. Refresh the site to verify the pixel loads.
+          Settings saved. Refresh the site to see changes (e.g. pixel and WhatsApp number).
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact (WhatsApp)</CardTitle>
+          <CardDescription>WhatsApp number used for support links and the floating button across the site.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="whatsappNumber">WhatsApp / Support Number</Label>
+            <Input
+              id="whatsappNumber"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              placeholder="7822987968 or +91 7822987968"
+            />
+            <p className="text-xs text-gray-500">
+              Enter with or without country code (e.g. 91). Used for wa.me links and display.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button type="button" onClick={save} disabled={saving}>
+              {saving ? "Saving..." : "Save Contact"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

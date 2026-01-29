@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X, Tag } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { brand } from '@/lib/brand';
+import { useContactInfo } from '@/components/providers/contact-info-provider';
 import { ToolIcon } from '@/components/tools/tool-icon';
 
 interface BundleTool {
@@ -49,6 +50,7 @@ interface PaymentLinks {
 export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const contactInfo = useContactInfo();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'sixMonth' | 'yearly'>('monthly');
   const [customerName, setCustomerName] = useState('');
@@ -499,7 +501,7 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
                         value={customerMobile}
                         onChange={(e) => setCustomerMobile(e.target.value)}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder={brand.supportPhone}
+                        placeholder={contactInfo.supportPhone}
                       />
                     </div>
 
