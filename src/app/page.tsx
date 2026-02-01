@@ -225,8 +225,8 @@ export default async function HomePage() {
       </section>
 
       {/* Individual Tools Section */}
-      <section className="section-padding bg-white py-10 md:py-12">
-        <div className="container-width">
+      <section className="bg-white py-12 md:py-16">
+        <div className="container-custom">
           <div className="text-center mb-6 md:mb-8">
             <Badge className="mb-3 gradient-surface-primary text-white font-semibold shadow-soft-md">
               Individual Tools
