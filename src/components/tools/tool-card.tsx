@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { getBasePrice, getOneMonthPrice, type PlanType } from "@/lib/price-utils";
 import { ArrowRight, Star, ShoppingCart, Eye } from "lucide-react";
-import { ToolIcon } from "./tool-icon";
 
 interface ToolCardProps {
   tool: {
@@ -48,6 +47,7 @@ export function ToolCard({ tool, showSubscribeButton = true }: ToolCardProps) {
     PRODUCTIVITY: "Productivity",
     CODE_DEV: "Code & Dev",
     VIDEO_AUDIO: "Video & Audio",
+    LEARNING: "Learning",
     OTHER: "Other",
   };
 
@@ -70,29 +70,36 @@ export function ToolCard({ tool, showSubscribeButton = true }: ToolCardProps) {
     router.push(`/tools/${tool.slug}`);
   };
 
+  const isImageUrl = tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http'));
+
   return (
     <Card 
-      className="group relative overflow-hidden glass border border-slate-200 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:shadow-purple-500/20 h-full flex flex-col cursor-pointer"
+      className="group relative overflow-hidden glass border border-slate-200 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:shadow-purple-500/20 h-full flex flex-col cursor-pointer p-0"
       onClick={handleCardClick}
     >
-      {/* Gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 to-blue-600/0 group-hover:from-purple-600/10 group-hover:to-blue-600/10 transition-all duration-300 pointer-events-none" />
-      
-      <CardHeader className="flex-1 pb-4">
-        {/* Tool Icon/Logo */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="group-hover:scale-110 transition-transform duration-300">
-            <ToolIcon icon={tool.icon} name={tool.name} size="lg" />
+      {/* Full-width image at top of card */}
+      <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden">
+        {isImageUrl ? (
+          <img
+            src={tool.icon!}
+            alt=""
+            className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-6xl sm:text-7xl group-hover:scale-105 transition-transform duration-300">
+            {tool.icon || "🛠️"}
           </div>
-          <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">
-            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-            <span>4.9</span>
-          </div>
+        )}
+        <div className="absolute top-2 right-2 flex items-center space-x-1 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-medium shadow-sm">
+          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+          <span>4.9</span>
         </div>
+      </div>
 
+      <CardHeader className="flex-1 pb-4 pt-4">
         {/* Category Badge */}
         <Badge 
-          className="glass border-slate-200 text-slate-700 text-xs font-medium mb-3 w-fit"
+          className="glass border-slate-200 text-slate-700 text-xs font-medium mb-2 w-fit"
           variant="secondary"
         >
           {categoryLabels[tool.category] || tool.category}

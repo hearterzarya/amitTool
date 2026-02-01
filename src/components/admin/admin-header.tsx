@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Shield, User, MessageCircle, Search } from "lucide-react";
+import { LogOut, Shield, User, Search } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
 import { useContactInfo } from "@/components/providers/contact-info-provider";
@@ -95,7 +96,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2"
               >
-                <MessageCircle className="h-4 w-4" />
+                <WhatsAppIcon size={16} />
                 <span className="hidden sm:inline">WhatsApp</span>
               </a>
             </Button>

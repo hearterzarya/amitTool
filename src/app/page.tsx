@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, MessageCircle, Users, Zap, CheckCircle2, Rocket } from "lucide-react";
+import { ArrowRight, Users, Zap, CheckCircle2, Rocket } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { TelegramIcon } from "@/components/icons/telegram-icon";
 import { prisma } from "@/lib/prisma";
 import { ToolIcon } from "@/components/tools/tool-icon";
 import { ToolNamesSlider } from "@/components/tools/tool-names-slider";
@@ -261,7 +263,7 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.08),transparent_70%)]"></div>
         <div className="container-custom max-w-4xl mx-auto text-center relative z-10">
           <Card className="p-10 md:p-14 animate-scale-in">
-            <MessageCircle className="h-16 w-16 text-accent mx-auto mb-6" />
+            <WhatsAppIcon size={64} className="text-[#25D366] mx-auto mb-6" />
             <h2 className="text-h2 mb-4 text-gradient-primary">
               Chat with us on WhatsApp
             </h2>
@@ -279,7 +281,7 @@ export default async function HomePage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2"
               >
-                <MessageCircle className="h-5 w-5" />
+                <WhatsAppIcon size={20} />
                 Contact us on WhatsApp
               </a>
             </Button>
@@ -314,7 +316,7 @@ export default async function HomePage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2"
               >
-                <MessageCircle className="h-5 w-5" />
+                <WhatsAppIcon size={20} />
                 Join WhatsApp Group
               </a>
             </Button>
@@ -330,7 +332,7 @@ export default async function HomePage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2"
               >
-                <Users className="h-5 w-5" />
+                <TelegramIcon size={20} />
                 Join Telegram Channel
               </a>
             </Button>

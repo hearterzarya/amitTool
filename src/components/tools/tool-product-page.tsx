@@ -26,10 +26,10 @@ import {
   Share2, 
   Facebook, 
   Twitter, 
-  MessageCircle,
   ArrowRight
 } from 'lucide-react';
 import { ToolIcon } from './tool-icon';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import {
   Select,
   SelectContent,
@@ -157,6 +157,7 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
     PRODUCTIVITY: "Productivity",
     CODE_DEV: "Code & Dev",
     VIDEO_AUDIO: "Video & Audio",
+    LEARNING: "Learning",
     OTHER: "Other",
   };
 
@@ -232,7 +233,7 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
                   rel="noopener noreferrer"
                   title="Share on WhatsApp"
                 >
-                  <MessageCircle className="h-4 w-4 text-green-600" />
+                  <WhatsAppIcon size={16} className="text-[#25D366]" />
                 </a>
               </Button>
             </div>

@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { 
   Mail, 
-  MessageCircle, 
   Phone, 
   MapPin, 
   Send,
@@ -18,6 +17,7 @@ import {
 import Link from "next/link";
 import { brand } from "@/lib/brand";
 import { useContactInfo } from "@/components/providers/contact-info-provider";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 
 export default function ContactPage() {
   const contactInfo = useContactInfo();
@@ -73,7 +73,7 @@ export default function ContactPage() {
             <Card className="glass border-slate-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-purple-600" />
+                  <WhatsAppIcon size={20} className="text-purple-600" />
                   Contact Information
                 </CardTitle>
                 <CardDescription>
@@ -100,7 +100,7 @@ export default function ContactPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-green-100 rounded-lg">
-                    <MessageCircle className="h-5 w-5 text-green-600" />
+                    <WhatsAppIcon size={20} className="text-[#25D366]" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">WhatsApp Support</h3>

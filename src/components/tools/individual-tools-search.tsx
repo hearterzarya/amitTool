@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ToolIcon } from '@/components/tools/tool-icon';
 
 interface Tool {
   id: string;
@@ -74,23 +73,39 @@ export function IndividualToolsSearch({ tools: initialTools }: IndividualToolsSe
         )}
       </div>
 
-      {/* Tools Grid */}
+      {/* Tools Grid - full image view cards */}
       {filteredTools.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 mb-8 sm:mb-12">
-          {filteredTools.map((tool) => (
-            <Link
-              key={tool.id}
-              href={`/tools#${tool.slug}`}
-              className="group relative flex flex-col items-center justify-center p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl bg-gradient-to-br from-white to-slate-50 border-2 border-slate-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 sm:hover:-translate-y-2"
-            >
-              <div className="mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300">
-                <ToolIcon icon={tool.icon} name={tool.name} size="xl" />
-              </div>
-              <div className="text-xs sm:text-sm font-semibold text-center text-slate-700 group-hover:text-purple-600 transition-colors line-clamp-2">
-                {tool.name}
-              </div>
-            </Link>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-5 mb-8 sm:mb-12">
+          {filteredTools.map((tool) => {
+            const isImageUrl = tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http'));
+            return (
+              <Link
+                key={tool.id}
+                href={`/tools#${tool.slug}`}
+                className="group relative flex flex-col rounded-xl sm:rounded-2xl overflow-hidden bg-white border-2 border-slate-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 sm:hover:-translate-y-2"
+              >
+                {/* Full-width image at top */}
+                <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden">
+                  {isImageUrl ? (
+                    <img
+                      src={tool.icon!}
+                      alt=""
+                      className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-5xl sm:text-6xl group-hover:scale-105 transition-transform duration-300">
+                      {tool.icon || "🛠️"}
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 sm:p-4 text-center">
+                  <div className="text-xs sm:text-sm font-semibold text-slate-700 group-hover:text-purple-600 transition-colors line-clamp-2">
+                    {tool.name}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12">

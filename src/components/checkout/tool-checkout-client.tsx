@@ -100,6 +100,7 @@ const categoryLabels: Record<ToolCategory, string> = {
   PRODUCTIVITY: "Productivity",
   CODE_DEV: "Code & Dev",
   VIDEO_AUDIO: "Video & Audio",
+  LEARNING: "Learning",
   OTHER: "Other",
 };
 

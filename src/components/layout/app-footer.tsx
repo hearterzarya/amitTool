@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { brand } from "@/lib/brand";
-import { Zap, MessageCircle, Mail, Phone } from "lucide-react";
+import { Zap, Mail, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { useContactInfo } from "@/components/providers/contact-info-provider";
 
@@ -89,7 +90,7 @@ export function AppFooter() {
                   rel="noopener noreferrer"
                   className="flex items-center space-x-3 text-foreground/60 hover:text-foreground transition-colors text-sm font-body"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <WhatsAppIcon size={16} className="flex-shrink-0" />
                   <span>WhatsApp Support</span>
                 </a>
               </div>

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
 import { useContactInfo } from "@/components/providers/contact-info-provider";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { 
   HelpCircle, 
   ChevronDown, 
   ChevronUp,
-  MessageCircle,
   ArrowRight,
   Mail,
   Phone
@@ -231,7 +231,7 @@ export default function FAQPage() {
         {/* Still Have Questions Section */}
         <Card className="glass border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 mt-12">
           <CardContent className="pt-8 pb-8 text-center">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
+            <WhatsAppIcon size={48} className="mx-auto mb-4 text-[#25D366]" />
             <h2 className="text-2xl font-bold text-slate-900 mb-4">
               Still Have Questions?
             </h2>
@@ -244,7 +244,7 @@ export default function FAQPage() {
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white"
               >
                 <a href={`https://wa.me/${contactInfo.whatsappNumber}`} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="mr-2 h-4 w-4" />
+                  <WhatsAppIcon size={16} className="mr-2" />
                   WhatsApp Support
                 </a>
               </Button>

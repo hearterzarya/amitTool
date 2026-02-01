@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, ArrowRight, Loader2, MessageCircle } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { brand } from '@/lib/brand';
 import { useContactInfo } from '@/components/providers/contact-info-provider';
 
@@ -137,7 +138,7 @@ function PaymentSuccessContent() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-lg font-medium transition-all duration-300 hover:scale-105"
                   >
-                    <MessageCircle className="h-5 w-5" />
+                    <WhatsAppIcon size={20} />
                     Contact Support on WhatsApp
                   </a>
                 </div>
@@ -183,7 +184,7 @@ function PaymentSuccessContent() {
                 // FALLBACK - Generic message
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 space-y-4">
                   <div className="flex items-center gap-3 mb-4">
-                    <MessageCircle className="h-6 w-6 text-blue-600" />
+                    <WhatsAppIcon size={24} className="text-[#25D366]" />
                     <h3 className="text-lg font-semibold text-blue-900">Next Steps</h3>
                   </div>
                   <p className="text-slate-700 font-medium">
@@ -195,7 +196,7 @@ function PaymentSuccessContent() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-lg font-medium transition-all duration-300 hover:scale-105"
                   >
-                    <MessageCircle className="h-5 w-5" />
+                    <WhatsAppIcon size={20} />
                     Contact us on WhatsApp
                   </a>
                   <p className="text-sm text-slate-600 mt-2">

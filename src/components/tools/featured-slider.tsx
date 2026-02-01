@@ -106,6 +106,11 @@ export function FeaturedSlider({ tools, categories }: FeaturedSliderProps) {
         badge: 'bg-red-100/90 border-red-300 text-red-800',
         button: 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700'
       },
+      'LEARNING': { 
+        bg: 'from-amber-600 via-yellow-500 to-lime-600', 
+        badge: 'bg-amber-100/90 border-amber-300 text-amber-800',
+        button: 'bg-gradient-to-r from-amber-600 to-lime-600 hover:from-amber-700 hover:to-lime-700'
+      },
       'OTHER': { 
         bg: 'from-gray-600 via-slate-500 to-zinc-600', 
         badge: 'bg-gray-100/90 border-gray-300 text-gray-800',

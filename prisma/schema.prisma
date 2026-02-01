@@ -156,6 +156,7 @@ enum ToolCategory {
   PRODUCTIVITY
   CODE_DEV
   VIDEO_AUDIO
+  LEARNING
   OTHER
 }
 
