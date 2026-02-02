@@ -21,6 +21,9 @@ const VALID_CATEGORIES: ToolCategory[] = [
   'CODE_DEV',
   'VIDEO_AUDIO',
   'LEARNING',
+  'MS_OFFICE_WINDOWS_KEY',
+  'VPNS',
+  'SOFTWARES',
   'OTHER',
 ];
 
@@ -127,6 +130,21 @@ export default async function ToolsPage({ searchParams }: PageProps) {
         value: 'LEARNING', 
         label: 'Learning', 
         count: await prisma.tool.count({ where: { category: 'LEARNING', isActive: true } }) 
+      },
+      { 
+        value: 'MS_OFFICE_WINDOWS_KEY', 
+        label: 'Ms Office & Windows Key', 
+        count: await prisma.tool.count({ where: { category: 'MS_OFFICE_WINDOWS_KEY', isActive: true } }) 
+      },
+      { 
+        value: 'VPNS', 
+        label: "VPN's", 
+        count: await prisma.tool.count({ where: { category: 'VPNS', isActive: true } }) 
+      },
+      { 
+        value: 'SOFTWARES', 
+        label: 'Softwares', 
+        count: await prisma.tool.count({ where: { category: 'SOFTWARES', isActive: true } }) 
       },
       { 
         value: 'OTHER', 

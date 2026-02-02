@@ -48,6 +48,9 @@ export function ToolCard({ tool, showSubscribeButton = true }: ToolCardProps) {
     CODE_DEV: "Code & Dev",
     VIDEO_AUDIO: "Video & Audio",
     LEARNING: "Learning",
+    MS_OFFICE_WINDOWS_KEY: "Ms Office & Windows Key",
+    VPNS: "VPN's",
+    SOFTWARES: "Softwares",
     OTHER: "Other",
   };
 

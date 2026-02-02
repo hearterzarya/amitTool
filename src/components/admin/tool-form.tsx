@@ -377,6 +377,9 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
                 <option value="CODE_DEV">Code & Dev</option>
                 <option value="VIDEO_AUDIO">Video & Audio</option>
                 <option value="LEARNING">Learning</option>
+                <option value="MS_OFFICE_WINDOWS_KEY">Ms Office & Windows Key</option>
+                <option value="VPNS">VPN's</option>
+                <option value="SOFTWARES">Softwares</option>
                 <option value="OTHER">Other</option>
               </select>
             </div>
