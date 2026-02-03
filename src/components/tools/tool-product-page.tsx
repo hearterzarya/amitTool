@@ -28,7 +28,6 @@ import {
   Twitter, 
   ArrowRight
 } from 'lucide-react';
-import { ToolIcon } from './tool-icon';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import {
   Select,
@@ -179,7 +178,7 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
     : parseFeatures(tool.privatePlanFeatures);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 pt-16 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 pt-20 md:pt-24 pb-20 md:pb-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="mb-6 text-sm">
@@ -508,9 +507,9 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
           </Card>
         )}
 
-        {/* Related Products */}
+        {/* Related Products - same big image style as tool cards */}
         {relatedTools.length > 0 && (
-          <div>
+          <div className="pb-8">
             <h2 className="text-2xl font-bold mb-6">Related Products</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedTools.map((relatedTool) => {
@@ -519,23 +518,35 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
                 const sharedOne = getOneMonthPrice(relatedTool, 'shared', sharedBase);
                 const privateOne = getOneMonthPrice(relatedTool, 'private', privateBase);
                 const hasPrice = sharedOne > 0 || privateOne > 0;
+                const isImageUrl = relatedTool.icon && (relatedTool.icon.startsWith('/') || relatedTool.icon.startsWith('http'));
                 return (
                   <Link
                     key={relatedTool.id}
                     href={`/tools/${relatedTool.slug}`}
-                    className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                    className="group bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow flex flex-col"
                   >
-                    <div className="p-6">
-                      <div className="flex items-center justify-center h-32 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg mb-4">
-                        <ToolIcon icon={relatedTool.icon} name={relatedTool.name} size="lg" />
-                      </div>
+                    {/* Full-width image same size as tool cards (aspect-[4/3]) */}
+                    <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden">
+                      {isImageUrl ? (
+                        <img
+                          src={relatedTool.icon!}
+                          alt=""
+                          className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-5xl sm:text-6xl group-hover:scale-105 transition-transform duration-300">
+                          {relatedTool.icon || "🛠️"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col">
                       <h3 className="font-semibold text-lg mb-2 line-clamp-2">{relatedTool.name}</h3>
                       {relatedTool.shortDescription && (
-                        <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+                        <p className="text-sm text-slate-600 mb-3 line-clamp-2 flex-1">
                           {relatedTool.shortDescription}
                         </p>
                       )}
-                      <div className="flex flex-wrap items-center gap-2 justify-between">
+                      <div className="flex flex-wrap items-center gap-2 justify-between mt-auto">
                         {hasPrice ? (
                           <div className="flex flex-wrap gap-1.5">
                             {sharedOne > 0 && (

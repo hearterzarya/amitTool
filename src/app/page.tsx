@@ -169,7 +169,7 @@ export default async function HomePage() {
                       <img
                         src={serializedBundle.imageUrl}
                         alt=""
-                        className="object-cover w-full h-full"
+                        className="object-contain w-full h-full"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-6xl sm:text-7xl">

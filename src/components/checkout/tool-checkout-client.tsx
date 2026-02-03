@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ToolIcon } from '@/components/tools/tool-icon';
 import { formatPrice } from '@/lib/utils';
 import { 
   toNumber, 
@@ -585,11 +584,11 @@ export function ToolCheckoutClient({
   const privateFeatures = parseFeatures(tool.privatePlanFeatures || '');
 
   return (
-    <div className="min-h-screen bg-white pt-20 pb-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white pt-24 md:pt-28 pb-20 md:pb-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 overflow-visible">
         {/* Coupon Banner - Only show before payment is created */}
         {!paymentCreated && !showCouponInput && (
-          <div className="mb-6 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4 mt-1">
             <div className="flex items-center gap-2 text-sm text-slate-700">
               <span>Have a coupon?</span>
               <button
@@ -611,8 +610,8 @@ export function ToolCheckoutClient({
 
         {/* Coupon Input Section - Only show before payment is created */}
         {!paymentCreated && showCouponInput && (
-          <Card className="mb-6 border-slate-200">
-            <CardContent className="p-4">
+          <Card className="mb-6 border-slate-200 overflow-visible">
+            <CardContent className="p-4 pb-5">
               <div className="flex items-center gap-3">
                 <Input
                   placeholder="Enter coupon code"
@@ -1148,7 +1147,7 @@ export function ToolCheckoutClient({
                       </div>
 
           {/* Right Column - Your Order and Payment Options */}
-          <div className="space-y-6">
+          <div className="space-y-6 pb-8 md:pb-12">
             {/* YOUR ORDER */}
             <Card className="border-slate-200 shadow-sm sticky top-24">
               <CardHeader className="border-b border-slate-200">
@@ -1169,11 +1168,19 @@ export function ToolCheckoutClient({
                     {/* Remove button (hidden for subscriptions) */}
                     <div className="w-6"></div>
                     
-                    {/* Product Thumbnail */}
-                    <div className="flex-shrink-0">
-                      <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center border border-slate-200">
-                        <ToolIcon icon={tool.icon} name={tool.name} size="sm" />
+                    {/* Product Thumbnail - larger image */}
+                    <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-slate-200 bg-gradient-to-br from-purple-100 to-blue-100">
+                      {tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http')) ? (
+                        <img
+                          src={tool.icon}
+                          alt={tool.name}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl">
+                          {tool.icon || "🛠️"}
                         </div>
+                      )}
                     </div>
 
                     {/* Product Details */}

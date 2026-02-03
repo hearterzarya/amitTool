@@ -9,8 +9,6 @@ import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X, Tag } from 'lucide-r
 import { formatPrice } from '@/lib/utils';
 import { brand } from '@/lib/brand';
 import { useContactInfo } from '@/components/providers/contact-info-provider';
-import { ToolIcon } from '@/components/tools/tool-icon';
-
 interface BundleTool {
   id: string;
   tool: {
@@ -350,8 +348,8 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
   const features = parseFeatures(bundle.features);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 pt-16 pb-12">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 pt-20 md:pt-24 pb-20 md:pb-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 overflow-visible">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Bundle Info */}
           <div className="lg:col-span-2">
@@ -362,7 +360,7 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
                   <img
                     src={bundle.imageUrl}
                     alt=""
-                    className="object-cover w-full h-full"
+                    className="object-contain w-full h-full"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-7xl sm:text-8xl">
@@ -395,21 +393,35 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
                   <div>
                     <h3 className="font-semibold text-lg mb-3">Included Tools:</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {bundle.tools.map((bundleTool) => (
-                        <div
-                          key={bundleTool.id}
-                          className="flex flex-col items-center p-4 rounded-lg bg-slate-50 border border-slate-200"
-                        >
-                          <ToolIcon
-                            icon={bundleTool.tool.icon}
-                            name={bundleTool.tool.name}
-                            size="lg"
-                          />
-                          <span className="text-sm font-medium text-slate-700 mt-2 text-center">
-                            {bundleTool.tool.name}
-                          </span>
-                        </div>
-                      ))}
+                      {bundle.tools.map((bundleTool) => {
+                        const tool = bundleTool.tool;
+                        const isImageUrl = tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http'));
+                        return (
+                          <div
+                            key={bundleTool.id}
+                            className="flex flex-col rounded-xl overflow-hidden bg-slate-50 border border-slate-200"
+                          >
+                            <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden">
+                              {isImageUrl ? (
+                                <img
+                                  src={tool.icon!}
+                                  alt={tool.name}
+                                  className="object-contain w-full h-full"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-5xl sm:text-6xl">
+                                  {tool.icon || "🛠️"}
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3 text-center">
+                              <span className="text-sm font-medium text-slate-700 line-clamp-2">
+                                {tool.name}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -522,7 +534,7 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
                     </div>
 
                     {/* Coupon Code Section */}
-                    <div className="pt-4 border-t border-slate-200">
+                    <div className="pt-4 pb-2 border-t border-slate-200">
                       {!showCouponInput && !appliedCoupon && (
                         <button
                           type="button"
