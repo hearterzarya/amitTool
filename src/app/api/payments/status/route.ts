@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If already successful, return cached status
+    // If already successful, return cached status (include toolId/bundleId for redirect logic)
     if (payment.status === 'SUCCESS') {
       return NextResponse.json({
         success: true,
@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
           status: payment.status,
           amount: payment.amount,
           successDate: payment.successDate,
+          toolId: payment.toolId ?? undefined,
+          bundleId: payment.bundleId ?? undefined,
         },
       });
     }

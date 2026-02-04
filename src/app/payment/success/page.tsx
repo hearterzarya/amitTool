@@ -38,7 +38,7 @@ function PaymentSuccessContent() {
         if (data.success) {
           setPaymentData(data.payment);
           
-          // Fetch subscription details if payment is successful
+          // Fetch subscription details if payment is successful (tool purchase only)
           if (data.payment.status === 'SUCCESS' && data.payment.toolId) {
             try {
               const subResponse = await fetch(`/api/subscriptions/check?toolId=${data.payment.toolId}`);
@@ -60,6 +60,24 @@ function PaymentSuccessContent() {
 
     fetchPayment();
   }, [ref, router]);
+
+  // Shared plan + active → redirect to dashboard
+  useEffect(() => {
+    if (loading || !paymentData || paymentData.status !== 'SUCCESS') return;
+    if (subscriptionData?.planType === 'SHARED' && subscriptionData?.activationStatus === 'ACTIVE') {
+      router.replace('/dashboard');
+      return;
+    }
+  }, [loading, paymentData, subscriptionData, router]);
+
+  // Bundle purchase → redirect to dashboard (no tool subscription)
+  useEffect(() => {
+    if (loading || !paymentData || paymentData.status !== 'SUCCESS') return;
+    if (paymentData.bundleId && !paymentData.toolId) {
+      router.replace('/dashboard');
+      return;
+    }
+  }, [loading, paymentData, router]);
 
   if (loading) {
     return (

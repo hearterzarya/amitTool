@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X, Tag } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { formatPrice } from '@/lib/utils';
 import { brand } from '@/lib/brand';
 import { useContactInfo } from '@/components/providers/contact-info-provider';
@@ -39,11 +40,11 @@ interface BundleCheckoutClientProps {
 }
 
 interface PaymentLinks {
-  upiIntent: string;
-  phonePe: string;
-  paytm: string;
-  gpay: string;
-  dynamicQR: string;
+  upiIntent?: string;
+  phonePe?: string;
+  paytm?: string;
+  gpay?: string;
+  dynamicQR?: string;
 }
 
 export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
@@ -321,7 +322,7 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
       }
 
       if (data.success) {
-        setPaymentLinks(data.payment.paymentLinks);
+        setPaymentLinks(data.payment.paymentLinks || null);
         setMerchantReferenceId(data.payment.merchantReferenceId);
         setPaymentStatus('pending');
         // Scroll to payment options
@@ -706,14 +707,26 @@ export function BundleCheckoutClient({ bundle }: BundleCheckoutClientProps) {
                             Pay via Google Pay
                           </a>
                         )}
-                        {paymentLinks.dynamicQR && (
-                          <div className="mt-4">
+                        {/* QR code: show dynamicQR image if available, else generate from upiIntent */}
+                        {(paymentLinks.dynamicQR || paymentLinks.upiIntent) && (
+                          <div className="mt-4 pt-4 border-t border-blue-200">
                             <p className="text-sm text-slate-600 mb-2">Or scan QR code:</p>
-                            <img
-                              src={paymentLinks.dynamicQR}
-                              alt="Payment QR Code"
-                              className="w-full rounded-lg border border-slate-200"
-                            />
+                            {paymentLinks.dynamicQR ? (
+                              <img
+                                src={paymentLinks.dynamicQR}
+                                alt="Payment QR Code"
+                                className="w-full max-w-[280px] mx-auto rounded-lg border border-slate-200"
+                              />
+                            ) : paymentLinks.upiIntent ? (
+                              <div className="flex justify-center p-4 bg-white rounded-lg border border-slate-200">
+                                <QRCodeSVG
+                                  value={paymentLinks.upiIntent}
+                                  size={256}
+                                  level="H"
+                                  includeMargin={true}
+                                />
+                              </div>
+                            ) : null}
                           </div>
                         )}
                       </div>
