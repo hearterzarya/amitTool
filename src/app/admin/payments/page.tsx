@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { ToolIcon } from "@/components/tools/tool-icon";
 import { CreditCard, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { PaymentActions } from "@/components/admin/payment-actions";
 
 export default async function PaymentsManagementPage() {
   const payments = await prisma.payment.findMany({
@@ -113,10 +114,10 @@ export default async function PaymentsManagementPage() {
                           payment.status === "SUCCESS"
                             ? "default"
                             : payment.status === "PENDING"
-                            ? "secondary"
-                            : payment.status === "FAILED"
-                            ? "destructive"
-                            : "outline"
+                              ? "secondary"
+                              : payment.status === "FAILED"
+                                ? "destructive"
+                                : "outline"
                         }
                       >
                         {payment.status}
@@ -140,22 +141,34 @@ export default async function PaymentsManagementPage() {
                           <span>Completed: {formatDate(payment.successDate)}</span>
                         </>
                       )}
+
+                      {/* Show Transaction ID / UTR if available */}
+                      {payment.transactionId && (
+                        <div className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200 font-mono text-xs flex items-center">
+                          <span className="font-bold mr-1">UTR:</span> {payment.transactionId}
+                        </div>
+                      )}
+
                       {payment.merchantReferenceId && (
-                        <>
-                          <span>•</span>
-                          <span className="font-mono text-xs">Ref: {payment.merchantReferenceId.slice(0, 8)}...</span>
-                        </>
+                        <span className="font-mono text-xs text-gray-400">Ref: {payment.merchantReferenceId.slice(0, 8)}...</span>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-2">
                   <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {formatPrice(payment.amount)}
                   </div>
                   {payment.planName && (
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-gray-500">
                       {payment.planName}
+                    </div>
+                  )}
+
+                  {/* Admin Actions */}
+                  {payment.status === 'PENDING' && (
+                    <div className="mt-2">
+                      <PaymentActions paymentId={payment.id} status={payment.status} />
                     </div>
                   )}
                 </div>

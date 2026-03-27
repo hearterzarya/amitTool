@@ -2,17 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import {
-  createPaygicToken,
-  createPaygicPayment,
-  generateMerchantReferenceId,
-} from '@/lib/paygic';
+import { generateMerchantReferenceId } from '@/lib/paygic';
 import { PlanType } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -21,18 +17,18 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { 
-      toolId, 
-      bundleId, 
-      planName, 
-      planType, 
+    const {
+      toolId,
+      bundleId,
+      planName,
+      planType,
       duration,
-      amount, 
+      amount,
       couponId,
       discountAmount,
-      customerName, 
-      customerEmail, 
-      customerMobile 
+      customerName,
+      customerEmail,
+      customerMobile
     } = body;
 
     // Validate required fields
@@ -65,7 +61,7 @@ export async function POST(req: NextRequest) {
     let tool = null;
     let bundle = null;
     let finalAmount = amount;
-    
+
     if (toolId) {
       tool = await prisma.tool.findUnique({
         where: { id: toolId },
@@ -77,31 +73,15 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         );
       }
-      
+
       // Use the provided amount (which is already in rupees from client)
-      // Client sends amount in rupees, so we use it directly
       if (!amount || amount <= 0) {
         // Fallback: calculate from tool price if amount not provided
         const toolPrice = typeof tool.priceMonthly === 'bigint' ? Number(tool.priceMonthly) : (tool.priceMonthly || 0);
         finalAmount = toolPrice / 100; // Convert from paise to rupees
-        console.log('Using tool default price (no plan specified):', {
-          toolId: tool.id,
-          toolName: tool.name,
-          priceMonthly: tool.priceMonthly,
-          priceInRupees: finalAmount,
-        });
       } else {
         // Use the plan-specific amount provided by the client (already in rupees)
         finalAmount = amount;
-        console.log('Using plan-specific price from client:', {
-          toolId: tool.id,
-          toolName: tool.name,
-          planName: planName,
-          planType: planType,
-          duration: duration,
-          amountInRupees: finalAmount,
-          discountAmount: discountAmount || 0,
-        });
       }
     } else if (bundleId) {
       try {
@@ -117,28 +97,14 @@ export async function POST(req: NextRequest) {
               { status: 404 }
             );
           }
-          
-          // Use the provided amount (which includes plan-specific pricing)
-          // Amount is already in rupees from client
+
+          // Use the provided amount
           if (!amount || amount <= 0) {
-            // Fallback: calculate from bundle priceMonthly if amount not provided
+            // Fallback
             const bundlePrice = typeof bundle.priceMonthly === 'bigint' ? Number(bundle.priceMonthly) : (bundle.priceMonthly || 0);
-            finalAmount = bundlePrice / 100; // Convert from paise to rupees
-            console.log('Using bundle default price (fallback):', {
-              bundleId: bundle.id,
-              bundleName: bundle.name,
-              priceMonthly: bundlePrice,
-              priceInRupees: finalAmount,
-            });
+            finalAmount = bundlePrice / 100;
           } else {
-            // Use the amount provided by the client (already in rupees)
             finalAmount = amount;
-            console.log('Using plan-specific bundle price from client:', {
-              bundleId: bundle.id,
-              bundleName: bundle.name,
-              planName: planName,
-              planPriceInRupees: finalAmount,
-            });
           }
 
           // Validate final amount
@@ -167,69 +133,41 @@ export async function POST(req: NextRequest) {
     // Generate unique merchant reference ID
     const merchantReferenceId = generateMerchantReferenceId();
 
-    // Create Paygic token
-    const token = await createPaygicToken();
+    // Prepare Manual UPI Payment Data
+    // Static UPI ID from env
+    const upiId = process.env.UPI_ID || 'paytmqr8100501011wdaqr1fuwnf@paytm';
+    const payeeName = process.env.PAYEE_NAME || 'clickify store';
+    const txnNote = `Order ${merchantReferenceId}`;
+    const amountStr = finalAmount.toString();
 
-    // Paygic expects amount in rupees (as a string)
-    // finalAmount is already in rupees from client
-    // Round to 2 decimal places for Paygic
-    const amountInRupees = Math.round(finalAmount * 100) / 100;
-    const amountForPaygic = amountInRupees.toString();
-    
-    console.log('Payment creation:', {
-      amountInRupees: finalAmount,
-      amountForPaygic,
-      toolId,
-      bundleId,
-      planType,
-      duration,
-      discountAmount: discountAmount || 0,
-      originalProvidedAmount: amount,
-    });
-    
-    // Validate minimum amount for Paygic (minimum ₹1)
-    if (amountInRupees < 1) {
-      return NextResponse.json(
-        { error: 'Amount too small. Minimum payment is ₹1' },
-        { status: 400 }
-      );
-    }
-
-    // Create payment request with Paygic
-    const paygicResponse = await createPaygicPayment(token, {
-      mid: process.env.PAYGIC_MERCHANT_ID!,
-      amount: amountForPaygic,
-      merchantReferenceId,
-      customer_name: customerName || session.user.name || 'Customer',
-      customer_email: customerEmail,
-      customer_mobile: customerMobile.replace(/\D/g, ''), // Clean mobile number
-    });
+    // Construct UPI Intent URL
+    const upiIntent = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amountStr}&cu=INR&tn=${encodeURIComponent(txnNote)}`;
 
     // Save payment to database
     const paymentData: any = {
       userId: (session.user as any).id,
       toolId: toolId || null,
-      planName: duration ? `${planName || 'Plan'} - ${
-        duration === '1year' ? '1 Year' :
+      planName: duration ? `${planName || 'Plan'} - ${duration === '1year' ? '1 Year' :
         duration === '6months' ? '6 Months' :
-        duration === '3months' ? '3 Months' :
-        '1 Month'
-      }` : (planName || null),
+          duration === '3months' ? '3 Months' :
+            '1 Month'
+        }` : (planName || null),
       planType: planType || (toolId ? PlanType.SHARED : null), // Default to SHARED for tool purchases
-      amount: Math.round(finalAmount * 100), // Store in paise (original amount before discount)
+      amount: Math.round(finalAmount * 100), // Store in paise
       discountAmount: discountAmount ? Math.round(discountAmount * 100) : 0, // Store discount in paise
       couponId: couponId || null,
       merchantReferenceId,
-      paygicToken: token,
-      upiIntent: paygicResponse.data.intent,
-      phonePeLink: paygicResponse.data.phonePe,
-      paytmLink: paygicResponse.data.paytm,
-      gpayLink: paygicResponse.data.gpay,
-      dynamicQR: paygicResponse.data.dynamicQR,
+      paymentMethod: 'UPI_QR',
+      upiIntent: upiIntent, // Store generated intent
+      // Clear external gateway links
+      phonePeLink: '',
+      paytmLink: '',
+      gpayLink: '',
+      dynamicQR: '',
       customerName: customerName || session.user.name || null,
       customerEmail,
       customerMobile: customerMobile.replace(/\D/g, ''), // Clean mobile number
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes expiry
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours expiry for manual payment
       status: 'PENDING',
     };
 
@@ -255,14 +193,17 @@ export async function POST(req: NextRequest) {
         amount: payment.amount,
         status: payment.status,
         paymentLinks: {
-          upiIntent: paygicResponse.data.intent,
-          phonePe: paygicResponse.data.phonePe,
-          paytm: paygicResponse.data.paytm,
-          gpay: paygicResponse.data.gpay,
-          dynamicQR: paygicResponse.data.dynamicQR,
+          upiIntent: upiIntent,
+          // Could provide individual app links if desired, but general intent covers all
+          phonePe: upiIntent,
+          paytm: upiIntent,
+          gpay: upiIntent,
+          dynamicQR: upiIntent, // Using intent as content for QR
         },
         expiresAt: payment.expiresAt,
       },
+      manualPayment: true,
+      upiId: upiId,
     });
   } catch (error: any) {
     console.error('Error creating payment:', error);

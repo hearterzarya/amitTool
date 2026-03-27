@@ -8,18 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CreditCard, 
-  Smartphone, 
-  QrCode, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  CreditCard,
+  Smartphone,
+  QrCode,
+  Loader2,
+  CheckCircle2,
   XCircle,
   ArrowLeft,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import { buildUpiLink, copyToClipboard, buildWhatsAppLink } from '@/lib/payment-utils';
 
 interface PaymentLinks {
   upiIntent: string;
@@ -48,6 +51,9 @@ function CheckoutContent() {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [submittingVerification, setSubmittingVerification] = useState(false);
 
   // Initialize form with session data
   useEffect(() => {
@@ -58,40 +64,7 @@ function CheckoutContent() {
   }, [session]);
 
   // Poll payment status
-  useEffect(() => {
-    if (!merchantReferenceId || paymentStatus !== 'pending') return;
-
-    const interval = setInterval(async () => {
-      try {
-        setCheckingStatus(true);
-        const response = await fetch('/api/payments/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ merchantReferenceId }),
-        });
-
-        const data = await response.json();
-        
-        if (data.success && data.payment.status === 'SUCCESS') {
-          setPaymentStatus('success');
-          clearInterval(interval);
-          // Redirect to success page after 2 seconds
-          setTimeout(() => {
-            router.push(`/payment/success?ref=${merchantReferenceId}`);
-          }, 2000);
-        } else if (data.success && data.payment.status === 'FAILED') {
-          setPaymentStatus('failed');
-          clearInterval(interval);
-        }
-      } catch (error) {
-        console.error('Error checking payment status:', error);
-      } finally {
-        setCheckingStatus(false);
-      }
-    }, 3000); // Check every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [merchantReferenceId, paymentStatus, router]);
+  // Manual confirmation flow: status polling removed
 
   // Redirect if not authenticated
   if (status === 'loading') {
@@ -109,7 +82,7 @@ function CheckoutContent() {
 
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!customerEmail || !customerMobile) {
       alert('Please fill in all required fields');
       return;
@@ -161,6 +134,47 @@ function CheckoutContent() {
     }
   };
 
+  const handleCopyUpiId = async () => {
+    const upiId = 'paytmqr8100501011wdaqr1fuwnf@paytm';
+    const success = await copyToClipboard(upiId);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleSubmitVerification = async () => {
+    if (!transactionId) {
+      alert('Please enter your Transaction ID / UTR');
+      return;
+    }
+
+    setSubmittingVerification(true);
+    try {
+      const response = await fetch('/api/payments/submit-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantReferenceId,
+          transactionId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        router.push(`/payment-submitted?orderId=${merchantReferenceId}&amount=${amount}`);
+      } else {
+        alert(data.error || 'Failed to submit verification');
+      }
+    } catch (error) {
+      console.error('Error submitting verification:', error);
+      alert('Failed to submit verification. Please try again.');
+    } finally {
+      setSubmittingVerification(false);
+    }
+  };
+
   const displayAmount = amount ? `₹${parseFloat(amount).toLocaleString('en-IN')}` : 'N/A';
 
   return (
@@ -168,7 +182,7 @@ function CheckoutContent() {
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Link 
+          <Link
             href="/tools"
             className="inline-flex items-center text-slate-600 hover:text-slate-900 mb-4"
           >
@@ -262,125 +276,120 @@ function CheckoutContent() {
             ) : (
               <Card className="glass border-slate-200">
                 <CardHeader>
-                  <CardTitle className="text-slate-900 flex items-center justify-between">
-                    <span>Choose Payment Method</span>
-                    {checkingStatus && (
-                      <Badge className="bg-blue-100 text-blue-700">
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        Checking...
-                      </Badge>
-                    )}
-                  </CardTitle>
+                  <CardTitle className="text-slate-900">UPI QR Payment</CardTitle>
                   <CardDescription>
-                    Select your preferred payment method to complete the transaction
+                    Scan the QR code below or use the UPI ID to complete your payment
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* UPI Intent */}
-                  {paymentLinks?.upiIntent && (
-                    <Button
-                      onClick={() => handleUPIPayment(paymentLinks.upiIntent)}
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white h-auto py-4"
-                    >
-                      <Smartphone className="h-5 w-5 mr-2" />
-                      <div className="text-left flex-1">
-                        <div className="font-semibold">Pay with UPI</div>
-                        <div className="text-xs opacity-90">Open any UPI app</div>
-                      </div>
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  )}
-
-                  {/* PhonePe */}
-                  {paymentLinks?.phonePe && (
-                    <Button
-                      onClick={() => handleUPIPayment(paymentLinks.phonePe)}
-                      variant="outline"
-                      className="w-full border-slate-300 hover:bg-slate-50 h-auto py-4"
-                    >
-                      <div className="text-left flex-1">
-                        <div className="font-semibold text-slate-900">PhonePe</div>
-                        <div className="text-xs text-slate-600">Pay with PhonePe app</div>
-                      </div>
-                      <ExternalLink className="h-4 w-4 text-slate-600" />
-                    </Button>
-                  )}
-
-                  {/* Paytm */}
-                  {paymentLinks?.paytm && (
-                    <Button
-                      onClick={() => handleUPIPayment(paymentLinks.paytm)}
-                      variant="outline"
-                      className="w-full border-slate-300 hover:bg-slate-50 h-auto py-4"
-                    >
-                      <div className="text-left flex-1">
-                        <div className="font-semibold text-slate-900">Paytm</div>
-                        <div className="text-xs text-slate-600">Pay with Paytm app</div>
-                      </div>
-                      <ExternalLink className="h-4 w-4 text-slate-600" />
-                    </Button>
-                  )}
-
-                  {/* Google Pay */}
-                  {paymentLinks?.gpay && (
-                    <Button
-                      onClick={() => handleUPIPayment(paymentLinks.gpay)}
-                      variant="outline"
-                      className="w-full border-slate-300 hover:bg-slate-50 h-auto py-4"
-                    >
-                      <div className="text-left flex-1">
-                        <div className="font-semibold text-slate-900">Google Pay</div>
-                        <div className="text-xs text-slate-600">Pay with Google Pay app</div>
-                      </div>
-                      <ExternalLink className="h-4 w-4 text-slate-600" />
-                    </Button>
-                  )}
-
-                  {/* QR Code */}
-                  {paymentLinks?.upiIntent && (
-                    <Card className="border-slate-200 bg-white">
-                      <CardHeader>
-                        <CardTitle className="text-sm text-slate-900 flex items-center">
-                          <QrCode className="h-4 w-4 mr-2" />
-                          Scan QR Code
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex justify-center mb-4 p-4 bg-white rounded-lg border border-slate-200">
+                <CardContent className="space-y-6">
+                  {/* QR Code Section */}
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                      {paymentLinks?.upiIntent ? (
+                        <>
+                          {/* Prefer dynamic QR for deep linking support, but allow static image fallback */}
                           <QRCodeSVG
                             value={paymentLinks.upiIntent}
-                            size={192}
+                            size={240}
                             level="H"
                             includeMargin={true}
-                            className="rounded-lg"
+                          />
+                          {/* Static overlay or alternate view if requested specifically by user */}
+                          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <img
+                              src="/assets/upi-qr.png"
+                              alt="UPI QR Fallback"
+                              className="w-[240px] h-[240px] object-contain"
+                              onError={(e) => (e.currentTarget.style.display = 'none')}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-[240px] h-[240px] flex items-center justify-center text-slate-400">
+                          <img
+                            src="/assets/upi-qr.png"
+                            alt="QR Code"
+                            className="w-full h-full object-contain"
+                            fallback-text="QR Code Loading..."
                           />
                         </div>
-                        <p className="text-xs text-center text-slate-600">
-                          Scan this QR code with any UPI app to pay
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Payment Status */}
-                  {paymentStatus === 'success' && (
-                    <div className="flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="text-green-700 font-medium">Payment Successful!</span>
+                      )}
                     </div>
-                  )}
+                    <p className="text-sm font-medium text-slate-700">Scan to Pay: ₹{amount}</p>
+                  </div>
 
-                  {paymentStatus === 'failed' && (
-                    <div className="flex items-center justify-center p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <XCircle className="h-5 w-5 text-red-600 mr-2" />
-                      <span className="text-red-700 font-medium">Payment Failed</span>
+                  {/* UPI ID Section */}
+                  <div className="space-y-3">
+                    <Label className="text-slate-700">UPI ID</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        readOnly
+                        value="paytmqr8100501011wdaqr1fuwnf@paytm"
+                        className="bg-slate-50 border-slate-200 font-mono text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCopyUpiId}
+                        className="flex-shrink-0"
+                      >
+                        {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                      </Button>
                     </div>
-                  )}
+                  </div>
 
-                  <div className="pt-4 border-t border-slate-200">
-                    <p className="text-xs text-slate-500 text-center">
-                      Payment link expires in 5 minutes. Please complete the payment before it expires.
+                  {/* Deep Link for Mobile */}
+                  <div className="block md:hidden pt-2">
+                    <Button
+                      onClick={() => handleUPIPayment(paymentLinks?.upiIntent || '')}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-6 h-auto"
+                    >
+                      <Smartphone className="h-5 w-5 mr-2" />
+                      Pay via UPI App
+                    </Button>
+                    <p className="text-[10px] text-center text-slate-500 mt-2">
+                      Clicking this will open your preferred UPI app
                     </p>
+                  </div>
+
+                  <div className="hidden md:block bg-blue-50 p-3 rounded-md border border-blue-100 text-center">
+                    <p className="text-xs text-blue-700">
+                      Use your mobile to scan the QR code above or copy the UPI ID
+                    </p>
+                  </div>
+
+                  {/* Verification Section */}
+                  <div className="pt-6 border-t border-slate-200 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="txnId" className="text-slate-700 font-semibold text-base">
+                        Step 2: Enter Transaction ID / UTR
+                      </Label>
+                      <Input
+                        id="txnId"
+                        placeholder="12-digit UPI Ref/UTR Number"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        className="bg-white border-slate-300 h-12"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Please enter the 12-digit transaction ID or UTR number from your payment app.
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={handleSubmitVerification}
+                      disabled={submittingVerification || !transactionId}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-6 h-auto text-lg font-bold"
+                    >
+                      {submittingVerification ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "I have paid"
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

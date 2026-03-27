@@ -29,20 +29,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Mail, 
+import {
+  Users,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Mail,
   Phone,
   Eye,
   EyeOff,
   Loader2,
   Pencil,
-  Save
+  Save,
+  Plus,
+  Key,
+  Gift,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -93,12 +97,16 @@ interface UsersManagementClientProps {
   users: User[];
   pendingSubscriptions: PendingSubscription[];
   adminId: string;
+  availableTools: { id: string; name: string }[];
+  availableBundles: { id: string; name: string }[];
 }
 
-export function UsersManagementClient({ 
-  users: initialUsers, 
+export function UsersManagementClient({
+  users: initialUsers,
   pendingSubscriptions: initialPending,
-  adminId 
+  adminId,
+  availableTools,
+  availableBundles
 }: UsersManagementClientProps) {
   const [users, setUsers] = useState(initialUsers);
   const [pendingSubscriptions, setPendingSubscriptions] = useState(initialPending);
@@ -114,17 +122,108 @@ export function UsersManagementClient({
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState({ name: '', email: '', status: '', role: '' });
   const [editLoading, setEditLoading] = useState(false);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [grantAccessOpen, setGrantAccessOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'USER' });
+  const [grantData, setGrantData] = useState({ userId: '', type: 'TOOL', itemId: '', planType: 'SHARED', expiryDate: '' });
+  const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let pass = '';
+    for (let i = 0; i < 12; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewUser({ ...newUser, password: pass });
+    // Also copy to clipboard
+    navigator.clipboard.writeText(pass).then(() => {
+      toast({ title: 'Password copied to clipboard' });
+    });
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch('/api/admin/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'User created successfully' });
+        // Ideally re-fetch or append. Appending complex user object is hard, let's just reload or append simple
+        setUsers(prev => [data.user, ...prev]); // data.user might need adaptation to match User interface
+        setCreateUserOpen(false);
+        setNewUser({ name: '', email: '', password: '', role: 'USER' });
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to create user', variant: 'destructive' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleGrantAccess = async () => {
+    if (!grantData.userId || !grantData.itemId || !grantData.expiryDate) return;
+    setActionLoading(true);
+    try {
+      const payload: any = {
+        userId: grantData.userId,
+        planType: grantData.planType,
+        expiryDate: grantData.expiryDate,
+      };
+      if (grantData.type === 'TOOL') payload.toolId = grantData.itemId;
+      else payload.bundleId = grantData.itemId;
+
+      const res = await fetch('/api/admin/subscriptions/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Access granted successfully' });
+        setGrantAccessOpen(false);
+        setGrantData({ userId: '', type: 'TOOL', itemId: '', planType: 'SHARED', expiryDate: '' });
+        // We should refresh the user list to show new subs, but for now just toast
+        // Or update the specific user in local state if possible
+        setUsers(prev => prev.map(u => {
+          if (u.id === grantData.userId) {
+            // Shallow update count to reflect change
+            return {
+              ...u,
+              _count: {
+                ...u._count,
+                subscriptions: u._count.subscriptions + (data.count || 1)
+              }
+            };
+          }
+          return u;
+        }));
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to grant access', variant: 'destructive' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Filter users
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+    const matchesSearch =
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
-    const matchesPlan = planFilter === 'all' || 
+
+    const matchesPlan = planFilter === 'all' ||
       (planFilter === 'SHARED' && user.subscriptions.some(s => s.planType === 'SHARED')) ||
       (planFilter === 'PRIVATE' && user.subscriptions.some(s => s.planType === 'PRIVATE'));
 
@@ -162,15 +261,15 @@ export function UsersManagementClient({
           title: 'Success',
           description: 'Subscription activated successfully',
         });
-        
+
         // Remove from pending list
-        setPendingSubscriptions(prev => 
+        setPendingSubscriptions(prev =>
           prev.filter(s => s.id !== selectedSubscription.id)
         );
-        
+
         // Update user status
-        setUsers(prev => prev.map(user => 
-          user.id === selectedSubscription.user.id 
+        setUsers(prev => prev.map(user =>
+          user.id === selectedSubscription.user.id
             ? { ...user, status: 'ACTIVE' }
             : user
         ));
@@ -226,9 +325,9 @@ export function UsersManagementClient({
           title: 'Success',
           description: 'User updated successfully',
         });
-        
-        setUsers(prev => prev.map(user => 
-          user.id === selectedUser.id 
+
+        setUsers(prev => prev.map(user =>
+          user.id === selectedUser.id
             ? { ...user, ...data.user }
             : user
         ));
@@ -270,8 +369,8 @@ export function UsersManagementClient({
           title: 'Success',
           description: 'User suspended successfully',
         });
-        
-        setUsers(prev => prev.map(user => 
+
+        setUsers(prev => prev.map(user =>
           user.id === userId ? { ...user, status: 'SUSPENDED' } : user
         ));
       } else {
@@ -314,8 +413,15 @@ export function UsersManagementClient({
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Users Management</h1>
-        <p className="text-slate-600">Manage users, subscriptions, and activations</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Users Management</h1>
+            <p className="text-slate-600">Manage users, subscriptions, and activations</p>
+          </div>
+          <Button onClick={() => setCreateUserOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Create User
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -499,6 +605,17 @@ export function UsersManagementClient({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Grant Access"
+                          onClick={() => {
+                            setGrantData({ ...grantData, userId: user.id });
+                            setGrantAccessOpen(true);
+                          }}
+                        >
+                          <Gift className="w-4 h-4 text-green-600" />
+                        </Button>
+                        <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditUser(user)}
@@ -557,6 +674,17 @@ export function UsersManagementClient({
                 onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                 placeholder="user@example.com"
               />
+            </div>
+            <div>
+              <Label htmlFor="edit-password">New Password (Optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="edit-password"
+                  type="text"
+                  placeholder="Enter new password"
+                  onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value } as any)}
+                />
+              </div>
             </div>
             <div>
               <Label htmlFor="edit-status">Status</Label>
@@ -694,6 +822,104 @@ export function UsersManagementClient({
                   Activate
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Create User Dialog */}
+      <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Name</Label>
+              <Input value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} placeholder="Full Name" />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email Address" />
+            </div>
+            <div>
+              <Label>Password</Label>
+              <div className="flex gap-2">
+                <Input value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} placeholder="Password" />
+                <Button onClick={generatePassword} variant="outline" size="icon"><Key className="w-4 h-4" /></Button>
+              </div>
+            </div>
+            <div>
+              <Label>Role</Label>
+              <Select value={newUser.role} onValueChange={v => setNewUser({ ...newUser, role: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USER">User</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCreateUser} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Grant Access Dialog */}
+      <Dialog open={grantAccessOpen} onOpenChange={setGrantAccessOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Grant Access</DialogTitle>
+            <DialogDescription>Manually give a user access to a tool or bundle.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Type</Label>
+              <Select value={grantData.type} onValueChange={v => setGrantData({ ...grantData, type: v, itemId: '' })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TOOL">Tool</SelectItem>
+                  <SelectItem value="BUNDLE">Bundle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Select Item</Label>
+              <Select value={grantData.itemId} onValueChange={v => setGrantData({ ...grantData, itemId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select item..." /></SelectTrigger>
+                <SelectContent>
+                  {grantData.type === 'TOOL' ? availableTools.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  )) : availableBundles.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Plan Type</Label>
+              <Select value={grantData.planType} onValueChange={v => setGrantData({ ...grantData, planType: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SHARED">Shared Plan</SelectItem>
+                  <SelectItem value="PRIVATE">Private Plan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Expiration Date</Label>
+              <Input
+                type="date"
+                value={grantData.expiryDate}
+                onChange={e => setGrantData({ ...grantData, expiryDate: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleGrantAccess} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Grant Access'}
             </Button>
           </DialogFooter>
         </DialogContent>

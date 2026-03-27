@@ -321,6 +321,10 @@ model Payment {
   customerEmail  String?
   customerMobile String?
 
+  // Manual Payment Details
+  transactionId String? @unique // UTR or Transaction ID entered by user
+  paymentMethod String  @default("PAYGIC") // 'PAYGIC' or 'UPI_QR'
+
   // Timestamps
   expiresAt   DateTime? // Payment link expiry
   successDate DateTime? // When payment succeeded

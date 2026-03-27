@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function GET(
   req: NextRequest,
@@ -9,7 +10,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -62,7 +63,7 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -80,7 +81,7 @@ export async function PUT(
 
     const { userId } = await params;
     const body = await req.json();
-    const { name, email, status, role } = body;
+    const { name, email, status, role, password } = body;
 
     // Validate status if provided
     if (status && !['FREE', 'PENDING', 'ACTIVE', 'SUSPENDED'].includes(status)) {
@@ -121,6 +122,9 @@ export async function PUT(
     if (email !== undefined) updateData.email = email;
     if (status !== undefined) updateData.status = status;
     if (role !== undefined) updateData.role = role;
+    if (password) {
+      updateData.passwordHash = await bcrypt.hash(password, 10);
+    }
 
     // Update user
     const user = await prisma.user.update({

@@ -59,11 +59,26 @@ export default async function UsersManagementPage() {
     },
   });
 
+  // Fetch tools and bundles for "Grant Access" feature
+  const tools = await prisma.tool.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+
+  const bundles = await prisma.bundle.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+
   return (
-    <UsersManagementClient 
-      users={users} 
+    <UsersManagementClient
+      users={users}
       pendingSubscriptions={pendingSubscriptions}
       adminId={(session.user as any).id}
+      availableTools={tools}
+      availableBundles={bundles}
     />
   );
 }
