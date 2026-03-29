@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -125,9 +126,25 @@ export function UsersManagementClient({
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [grantAccessOpen, setGrantAccessOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'USER' });
-  const [grantData, setGrantData] = useState({ userId: '', type: 'TOOL', itemId: '', planType: 'SHARED', expiryDate: '' });
+  const [grantData, setGrantData] = useState({
+    userId: '',
+    type: 'TOOL' as 'TOOL' | 'BUNDLE',
+    itemId: '',
+    planType: 'SHARED' as 'SHARED' | 'PRIVATE',
+    expiryDate: '',
+    privateEmail: '',
+    privatePassword: '',
+  });
   const [actionLoading, setActionLoading] = useState(false);
+  const [grantLoading, setGrantLoading] = useState(false);
+  const router = useRouter();
   const { toast } = useToast();
+
+  const defaultExpiryDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().slice(0, 10);
+  };
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
@@ -169,10 +186,28 @@ export function UsersManagementClient({
   };
 
   const handleGrantAccess = async () => {
-    if (!grantData.userId || !grantData.itemId || !grantData.expiryDate) return;
-    setActionLoading(true);
+    if (!grantData.userId || !grantData.itemId || !grantData.expiryDate) {
+      toast({
+        title: 'Missing information',
+        description: 'Choose a tool or bundle and an expiry date.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (grantData.planType === 'PRIVATE') {
+      if (!grantData.privateEmail.trim() || !grantData.privatePassword) {
+        toast({
+          title: 'Private plan credentials required',
+          description: 'Enter the account email and password so the user can access the tool immediately.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    setGrantLoading(true);
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         userId: grantData.userId,
         planType: grantData.planType,
         expiryDate: grantData.expiryDate,
@@ -180,38 +215,49 @@ export function UsersManagementClient({
       if (grantData.type === 'TOOL') payload.toolId = grantData.itemId;
       else payload.bundleId = grantData.itemId;
 
+      if (grantData.planType === 'PRIVATE') {
+        payload.privateEmail = grantData.privateEmail.trim();
+        payload.privatePassword = grantData.privatePassword;
+      }
+
       const res = await fetch('/api/admin/subscriptions/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast({ title: 'Access granted successfully' });
-        setGrantAccessOpen(false);
-        setGrantData({ userId: '', type: 'TOOL', itemId: '', planType: 'SHARED', expiryDate: '' });
-        // We should refresh the user list to show new subs, but for now just toast
-        // Or update the specific user in local state if possible
-        setUsers(prev => prev.map(u => {
-          if (u.id === grantData.userId) {
-            // Shallow update count to reflect change
-            return {
-              ...u,
-              _count: {
-                ...u._count,
-                subscriptions: u._count.subscriptions + (data.count || 1)
-              }
-            };
-          }
-          return u;
-        }));
-      } else {
-        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+
+      let data: { success?: boolean; error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
       }
-    } catch (e) {
+
+      if (!res.ok || !data.success) {
+        toast({
+          title: 'Could not grant access',
+          description: data.error || `Server returned ${res.status}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({ title: 'Access granted', description: 'The user can use this plan according to the dates you set.' });
+      setGrantAccessOpen(false);
+      setGrantData({
+        userId: '',
+        type: 'TOOL',
+        itemId: '',
+        planType: 'SHARED',
+        expiryDate: '',
+        privateEmail: '',
+        privatePassword: '',
+      });
+      router.refresh();
+    } catch {
       toast({ title: 'Error', description: 'Failed to grant access', variant: 'destructive' });
     } finally {
-      setActionLoading(false);
+      setGrantLoading(false);
     }
   };
 
@@ -401,6 +447,14 @@ export function UsersManagementClient({
     const config = variants[status] || { variant: 'outline' as const, label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  const grantTargetUser = users.find((u) => u.id === grantData.userId);
+  const minExpiry = new Date().toISOString().slice(0, 10);
+  const grantFormValid =
+    !!grantData.itemId &&
+    !!grantData.expiryDate &&
+    (grantData.planType === 'SHARED' ||
+      (grantData.privateEmail.trim().length > 0 && grantData.privatePassword.length > 0));
 
   const stats = {
     total: users.length,
@@ -609,7 +663,15 @@ export function UsersManagementClient({
                           size="icon"
                           title="Grant Access"
                           onClick={() => {
-                            setGrantData({ ...grantData, userId: user.id });
+                            setGrantData({
+                              userId: user.id,
+                              type: 'TOOL',
+                              itemId: '',
+                              planType: 'SHARED',
+                              expiryDate: defaultExpiryDate(),
+                              privateEmail: '',
+                              privatePassword: '',
+                            });
                             setGrantAccessOpen(true);
                           }}
                         >
@@ -868,17 +930,48 @@ export function UsersManagementClient({
       </Dialog>
 
       {/* Grant Access Dialog */}
-      <Dialog open={grantAccessOpen} onOpenChange={setGrantAccessOpen}>
-        <DialogContent>
+      <Dialog
+        open={grantAccessOpen}
+        onOpenChange={(open) => {
+          setGrantAccessOpen(open);
+          if (!open) {
+            setGrantData({
+              userId: '',
+              type: 'TOOL',
+              itemId: '',
+              planType: 'SHARED',
+              expiryDate: '',
+              privateEmail: '',
+              privatePassword: '',
+            });
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Grant Access</DialogTitle>
-            <DialogDescription>Manually give a user access to a tool or bundle.</DialogDescription>
+            <DialogTitle>Grant plan access</DialogTitle>
+            <DialogDescription>
+              {grantTargetUser
+                ? `Give ${grantTargetUser.name || grantTargetUser.email} access to a tool or bundle. Shared plans activate immediately with shared credentials. Private plans need the real account email and password.`
+                : 'Manually give a user access to a tool or bundle.'}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-2">
             <div>
               <Label>Type</Label>
-              <Select value={grantData.type} onValueChange={v => setGrantData({ ...grantData, type: v, itemId: '' })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={grantData.type}
+                onValueChange={(v) =>
+                  setGrantData({
+                    ...grantData,
+                    type: v as 'TOOL' | 'BUNDLE',
+                    itemId: '',
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TOOL">Tool</SelectItem>
                   <SelectItem value="BUNDLE">Bundle</SelectItem>
@@ -886,40 +979,124 @@ export function UsersManagementClient({
               </Select>
             </div>
             <div>
-              <Label>Select Item</Label>
-              <Select value={grantData.itemId} onValueChange={v => setGrantData({ ...grantData, itemId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select item..." /></SelectTrigger>
+              <Label>{grantData.type === 'TOOL' ? 'Tool' : 'Bundle'}</Label>
+              {grantData.type === 'TOOL' && availableTools.length === 0 ? (
+                <p className="text-sm text-amber-700 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                  No active tools in the catalog. Add or activate tools first.
+                </p>
+              ) : grantData.type === 'BUNDLE' && availableBundles.length === 0 ? (
+                <p className="text-sm text-amber-700 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                  No active bundles. Create a bundle in admin first.
+                </p>
+              ) : (
+                <Select
+                  value={grantData.itemId || undefined}
+                  onValueChange={(v) => setGrantData({ ...grantData, itemId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={grantData.type === 'TOOL' ? 'Select a tool…' : 'Select a bundle…'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grantData.type === 'TOOL'
+                      ? availableTools.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))
+                      : availableBundles.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label>Plan type</Label>
+              <Select
+                value={grantData.planType}
+                onValueChange={(v) =>
+                  setGrantData({
+                    ...grantData,
+                    planType: v as 'SHARED' | 'PRIVATE',
+                    privateEmail: v === 'PRIVATE' ? grantData.privateEmail : '',
+                    privatePassword: v === 'PRIVATE' ? grantData.privatePassword : '',
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {grantData.type === 'TOOL' ? availableTools.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  )) : availableBundles.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                  ))}
+                  <SelectItem value="SHARED">Shared (pooled access)</SelectItem>
+                  <SelectItem value="PRIVATE">Private (dedicated account)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {grantData.planType === 'PRIVATE' && (
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+                <p className="text-xs text-slate-600">
+                  Enter the credentials the customer will use. Access is activated immediately.
+                </p>
+                <div>
+                  <Label htmlFor="grant-private-email">Account email</Label>
+                  <Input
+                    id="grant-private-email"
+                    type="email"
+                    autoComplete="off"
+                    value={grantData.privateEmail}
+                    onChange={(e) => setGrantData({ ...grantData, privateEmail: e.target.value })}
+                    placeholder="login@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="grant-private-password">Account password</Label>
+                  <Input
+                    id="grant-private-password"
+                    type="text"
+                    autoComplete="new-password"
+                    value={grantData.privatePassword}
+                    onChange={(e) => setGrantData({ ...grantData, privatePassword: e.target.value })}
+                    placeholder="Password shown to the user in dashboard"
+                  />
+                </div>
+              </div>
+            )}
             <div>
-              <Label>Plan Type</Label>
-              <Select value={grantData.planType} onValueChange={v => setGrantData({ ...grantData, planType: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SHARED">Shared Plan</SelectItem>
-                  <SelectItem value="PRIVATE">Private Plan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Expiration Date</Label>
+              <Label className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-slate-500" />
+                Access valid until
+              </Label>
               <Input
                 type="date"
+                min={minExpiry}
                 value={grantData.expiryDate}
-                onChange={e => setGrantData({ ...grantData, expiryDate: e.target.value })}
+                onChange={(e) => setGrantData({ ...grantData, expiryDate: e.target.value })}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleGrantAccess} disabled={actionLoading}>
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Grant Access'}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setGrantAccessOpen(false)}
+              disabled={grantLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleGrantAccess} disabled={grantLoading || !grantFormValid}>
+              {grantLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Granting…
+                </>
+              ) : (
+                <>
+                  <Gift className="mr-2 h-4 w-4" />
+                  Grant access
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

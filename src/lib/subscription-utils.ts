@@ -127,7 +127,7 @@ export async function createSubscriptionAfterPayment(
  * Gets or creates shared credentials for a tool
  * Manages the pool of shared accounts (4-5 users per account)
  */
-async function getOrCreateSharedCredentials(toolId: string) {
+export async function getOrCreateSharedCredentials(toolId: string) {
   // Find an existing shared account with available slots
   const existingShared = await prisma.sharedCredentials.findFirst({
     where: {
