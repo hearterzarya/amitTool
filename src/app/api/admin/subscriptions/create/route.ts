@@ -15,6 +15,13 @@ function parseExpiryDate(expiryDate: string): Date {
   return new Date(y, m - 1, d, 23, 59, 59, 999);
 }
 
+function addMonthsEndOfDay(from: Date, months: number): Date {
+  const result = new Date(from);
+  result.setMonth(result.getMonth() + months);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -30,19 +37,32 @@ export async function POST(req: Request) {
       bundleId,
       planType,
       expiryDate,
+      durationMonths,
       privateEmail,
       privatePassword,
     } = body;
 
-    if (!userId || (!toolId && !bundleId) || !expiryDate) {
+    if (!userId || (!toolId && !bundleId) || (!expiryDate && !durationMonths)) {
       return NextResponse.json(
-        { error: "Missing required fields: user, tool or bundle, and expiry date" },
+        { error: "Missing required fields: user, tool or bundle, and expiry date or duration months" },
         { status: 400 }
       );
     }
 
     const currentPeriodStart = new Date();
-    const currentPeriodEnd = parseExpiryDate(expiryDate);
+    let currentPeriodEnd: Date;
+    if (durationMonths !== undefined && durationMonths !== null && String(durationMonths).trim() !== "") {
+      const months = Number(durationMonths);
+      if (!Number.isInteger(months) || months <= 0 || months > 60) {
+        return NextResponse.json(
+          { error: "Duration months must be an integer between 1 and 60" },
+          { status: 400 }
+        );
+      }
+      currentPeriodEnd = addMonthsEndOfDay(currentPeriodStart, months);
+    } else {
+      currentPeriodEnd = parseExpiryDate(expiryDate);
+    }
 
     if (currentPeriodEnd.getTime() < currentPeriodStart.getTime()) {
       return NextResponse.json(

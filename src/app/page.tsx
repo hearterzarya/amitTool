@@ -2,13 +2,20 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Users, Zap, CheckCircle2, Rocket } from "lucide-react";
+import {
+  ArrowRight,
+  Users,
+  Zap,
+  CheckCircle2,
+  BadgeCheck,
+  Lock,
+  CalendarClock,
+  Headphones,
+} from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { TelegramIcon } from "@/components/icons/telegram-icon";
 import { prisma } from "@/lib/prisma";
-import { ToolIcon } from "@/components/tools/tool-icon";
 import { ToolNamesSlider } from "@/components/tools/tool-names-slider";
-import { IndividualToolsSearch } from "@/components/tools/individual-tools-search";
 import { formatPrice, serializeBundle } from "@/lib/utils";
 import { brand } from "@/lib/brand";
 import { getContactInfo } from "@/lib/app-settings";
@@ -39,6 +46,19 @@ export default async function HomePage() {
     name: string;
     slug: string;
     icon: string | null;
+    shortDescription?: string | null;
+  }> = [];
+  let featuredTools: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    icon: string | null;
+    shortDescription: string | null;
+  }> = [];
+  let homeReviewScreenshots: Array<{
+    id: string;
+    imageUrl: string;
+    caption: string | null;
   }> = [];
 
   try {
@@ -77,11 +97,36 @@ export default async function HomePage() {
         name: true,
         slug: true,
         icon: true,
+        shortDescription: true,
         description: true,
         sharedPlanFeatures: true,
         privatePlanFeatures: true,
       },
     });
+    featuredTools = await prisma.tool.findMany({
+      where: { isActive: true, isFeatured: true },
+      orderBy: { sortOrder: 'asc' },
+      take: 8,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        icon: true,
+        shortDescription: true,
+      },
+    });
+    if ('reviewScreenshot' in prisma && typeof (prisma as any).reviewScreenshot?.findMany === 'function') {
+      homeReviewScreenshots = await (prisma as any).reviewScreenshot.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        take: 3,
+        select: {
+          id: true,
+          imageUrl: true,
+          caption: true,
+        },
+      });
+    }
   } catch (error: any) {
     console.error('Database error:', error?.message);
     tools = [];
@@ -89,50 +134,107 @@ export default async function HomePage() {
 
   return (
     <AppShell>
-      {/* Hero Section - Glassmorphism Premium Light */}
-      <section className="relative overflow-hidden section-padding">
+      {/* Hero — content aligned to marketing reference (no pricing cards) */}
+      <section className="relative overflow-hidden pt-2 md:pt-3 pb-16 md:pb-20">
         <div className="absolute inset-0 gradient-surface-light"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(96,165,250,0.15),transparent_50%)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(139,92,246,0.15),transparent_50%)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)]"></div>
-        
+
         <div className="container-custom relative z-10">
-          <div className="text-center max-w-6xl mx-auto animate-fade-in-up">
-            <Badge className="mb-8 gradient-surface-primary text-white shadow-soft-md animate-float">
-              <Rocket className="h-4 w-4 mr-2" />
-              Premium Tools for India
-            </Badge>
-            
-            <h1 className="text-display mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <span className="block text-gradient-primary">Premium AI & Work Tools</span>
-              <span className="block text-gradient-accent mt-4">
-                Now Affordable for India
+          {/* Top trust bar */}
+          <div className="mb-8 md:mb-10 border-y border-border/40 bg-background/30 py-3 px-2">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6 md:gap-x-8 text-xs sm:text-sm font-body text-foreground/80">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                12,000+ Happy Customers
               </span>
+              <span className="inline-flex items-center gap-1.5 text-amber-500">
+                <Zap className="h-4 w-4 shrink-0" aria-hidden />
+                Delivery in under 2 minutes
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-amber-600">
+                <Lock className="h-4 w-4 shrink-0" aria-hidden />
+                100% Secure Indian Payments
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-sky-600">
+                <CalendarClock className="h-4 w-4 shrink-0" aria-hidden />
+                7-Day Money Back Guarantee
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-red-500">
+                <Headphones className="h-4 w-4 shrink-0" aria-hidden />
+                24/7 WhatsApp Support
+              </span>
+            </div>
+          </div>
+
+          <div className="text-center max-w-5xl mx-auto animate-fade-in-up">
+            <Badge
+              variant="outline"
+              className="mb-6 md:mb-8 border-purple-300/60 bg-background/60 px-4 py-1.5 text-sm font-medium text-foreground shadow-sm"
+            >
+              🔥 India&apos;s Most Trusted Premium Tool Store
+            </Badge>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-display leading-tight mb-6 md:mb-8">
+              <span className="block text-foreground">Premium AI & Work Tools</span>
+              <span className="block text-gradient-accent mt-2 md:mt-3">Save Up to 90% vs Official</span>
+              <span className="block text-foreground mt-2 md:mt-3">Price</span>
             </h1>
-            
-            <p className="mx-auto max-w-4xl text-xl md:text-2xl text-foreground/80 mb-6 leading-relaxed font-body animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              Smart bundles for content, SEO, video, business & study — without expensive subscriptions.
-            </p>
-            <p className="text-lg text-foreground/60 mb-12 font-body animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              Monthly • 6-Month • Yearly plans • Instant access • Indian payments supported
+
+            <p className="mx-auto max-w-3xl text-base sm:text-lg md:text-xl text-foreground/75 mb-8 md:mb-10 leading-relaxed font-body px-2">
+              Get instant access to ChatGPT, Gemini Pro, LinkedIn Premium, MS Office & 20+ tools — at prices made for
+              India.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-              <Button 
-                asChild 
-                size="lg" 
-                className="text-lg px-10 py-7 h-auto shadow-glow-primary"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center mb-10 md:mb-12 max-w-xl mx-auto sm:max-w-none">
+              <Button
+                asChild
+                size="lg"
+                className="text-base sm:text-lg px-8 py-6 h-auto shadow-glow-primary gradient-surface-primary font-display"
               >
-                <Link href="/tools" className="flex items-center gap-2 font-display">
-                  Explore Tools
-                  <ArrowRight className="w-6 h-6" />
+                <Link href="/tools" className="inline-flex items-center justify-center gap-2">
+                  <span aria-hidden>🚀</span>
+                  Explore All Tools
                 </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                className="text-base sm:text-lg px-8 py-6 h-auto bg-emerald-600 hover:bg-emerald-700 text-white font-display shadow-md"
+              >
+                <a
+                  href={`https://wa.me/${contactInfo.whatsappNumber}?text=${encodeURIComponent(brand.whatsappMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2"
+                >
+                  <span aria-hidden>💬</span>
+                  WhatsApp Us
+                </a>
               </Button>
             </div>
 
-            {/* Tool Names Slider */}
+            {/* Stats row */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 sm:gap-4 pt-2 border-t border-border/40 max-w-4xl mx-auto">
+              {[
+                { value: "12,000+", label: "Happy Customers" },
+                { value: "99%", label: "Satisfaction Rate" },
+                { value: "<2 min", label: "Average Delivery" },
+                { value: "20+", label: "Premium Tools" },
+                { value: "7-Day", label: "Money Back" },
+              ].map((row) => (
+                <div key={row.label} className="text-center">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-sky-600 dark:text-sky-400 font-display">
+                    {row.value}
+                  </div>
+                  <div className="mt-1 text-xs sm:text-sm text-foreground/70 font-body">{row.label}</div>
+                </div>
+              ))}
+            </div>
+
             {tools.length > 0 && (
-              <div className="mt-12 -mx-4 sm:-mx-6 lg:-mx-8">
+              <div className="mt-12 md:mt-14 -mx-4 sm:-mx-6 lg:-mx-8">
                 <ToolNamesSlider tools={tools} />
               </div>
             )}
@@ -224,36 +326,92 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Individual Tools Section */}
+      {/* Best sellers (admin: Tool → Best seller / featured) — replaces home search + full grid */}
       <section className="bg-white py-12 md:py-16">
         <div className="container-custom">
           <div className="text-center mb-6 md:mb-8">
             <Badge className="mb-3 gradient-surface-primary text-white font-semibold shadow-soft-md">
-              Individual Tools
+              Best Sellers
             </Badge>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 text-slate-900">
               Buy Any Premium Tool Individually
             </h2>
             <p className="text-base text-slate-600 max-w-3xl mx-auto">
-              No bundle required — Explore and purchase individual tools instantly, with simple pricing and secure access.
+              Hand-picked best sellers you control in Admin. Open the full catalog anytime from the button below.
             </p>
           </div>
 
-          <IndividualToolsSearch tools={tools} />
+          {featuredTools.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 mb-8">
+              {featuredTools.map((tool) => {
+                const isImageUrl = tool.icon && (tool.icon.startsWith('/') || tool.icon.startsWith('http'));
+                return (
+                  <Link
+                    key={tool.id}
+                    href={`/tools/${tool.slug}`}
+                    className="group rounded-xl border-2 border-slate-200 bg-white hover:border-purple-400 hover:shadow-lg transition-all duration-300 overflow-hidden"
+                  >
+                    <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-purple-100 to-blue-100">
+                      {isImageUrl ? (
+                        <img src={tool.icon!} alt="" className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-5xl">
+                          {tool.icon || '🛠️'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3 sm:p-4 text-center">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-700 group-hover:text-purple-600 transition-colors line-clamp-2">
+                        {tool.name}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10 mb-8 rounded-xl border border-amber-200 bg-amber-50/80 px-4">
+              <p className="text-slate-800 font-medium mb-1">No best sellers selected yet</p>
+              <p className="text-sm text-slate-600 mb-4">
+                In Admin, edit any active tool and turn on <strong>Best seller (home page)</strong>.
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/tools">Go to Admin Tools</Link>
+              </Button>
+            </div>
+          )}
 
-          <div className="text-center mt-8">
-            <Button 
-              asChild 
-              size="lg" 
-              variant="outline" 
-              className="px-10 py-7 h-auto text-lg font-display"
-            >
-              <Link href="/tools" className="flex items-center gap-2">
+          <div className="text-center">
+            <Button asChild size="lg" variant="outline" className="px-10 py-7 h-auto text-lg font-display">
+              <Link href="/tools" className="flex items-center gap-2 justify-center">
                 View All Tools
                 <ArrowRight className="w-6 h-6" />
               </Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Founder Section */}
+      <section className="section-padding bg-slate-50">
+        <div className="container-custom max-w-5xl">
+          <Card className="p-8 md:p-10 border-slate-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="rounded-full bg-purple-100 p-3">
+                <BadgeCheck className="h-6 w-6 text-purple-700" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Amit - Founder</h2>
+                <p className="text-slate-600">Tech Entrepreneur - Mumbai, India</p>
+              </div>
+            </div>
+            <p className="text-slate-700 leading-relaxed text-base md:text-lg">
+              I started Amit Techsolution in 2023 after realising how expensive premium tools are for Indian students,
+              freelancers and small businesses. Our mission is simple: give every Indian access to the same tools that
+              global companies use - at prices that make sense for India. We've now helped over 12,000 customers save
+              crores in subscription costs.
+            </p>
+          </Card>
         </div>
       </section>
 
@@ -335,6 +493,58 @@ export default async function HomePage() {
                 <TelegramIcon size={20} />
                 Join Telegram Channel
               </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Home Reviews Section */}
+      <section className="section-padding bg-slate-50">
+        <div className="container-custom">
+          <div className="text-center mb-8">
+            <Badge className="mb-3 gradient-surface-primary text-white font-semibold shadow-soft-md">
+              Reviews
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 text-slate-900">
+              Real Customer Trust
+            </h2>
+            <p className="text-base text-slate-600 max-w-3xl mx-auto">
+              Verified feedback and proof screenshots from customers across India.
+            </p>
+          </div>
+
+          {homeReviewScreenshots.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {homeReviewScreenshots.map((shot) => (
+                <div key={shot.id} className="rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm">
+                  <img src={shot.imageUrl} alt={shot.caption || 'Customer review screenshot'} className="w-full h-56 object-cover" />
+                  <div className="p-3">
+                    <p className="text-sm text-slate-700 line-clamp-2">{shot.caption || 'Customer proof screenshot'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                'Fast delivery, genuine access and smooth support experience.',
+                'Saved thousands every month compared to direct subscriptions.',
+                'Perfect for students, freelancers and agencies in India.',
+              ].map((quote) => (
+                <Card key={quote} className="border-slate-200">
+                  <CardContent className="pt-6">
+                    <p className="text-slate-700">"{quote}"</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          <div className="text-center mt-8">
+            <Button asChild variant="outline" size="lg">
+              <Link href="/reviews" className="inline-flex items-center gap-2">
+                See All Reviews
+                <ArrowRight className="h-5 w-5" />
+              </Link>
             </Button>
           </div>
         </div>

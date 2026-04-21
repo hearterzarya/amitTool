@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { brand } from "@/lib/brand";
 
-export type AppSettingKey = "meta_pixel_id" | "meta_pixel_enabled" | "whatsapp_number";
+export type AppSettingKey =
+  | "meta_pixel_id"
+  | "meta_pixel_enabled"
+  | "whatsapp_number"
+  | "product_popup_enabled"
+  | "product_popup_tool_slug"
+  | "product_popup_page_target"
+  | "product_popup_title"
+  | "product_popup_description";
 
 // Cache table existence check to avoid repeated queries
 let tableExistsCache: boolean | null = null;
@@ -88,5 +96,72 @@ export async function getContactInfo(): Promise<ContactInfo> {
     whatsappNumber: brand.whatsappNumber,
     supportPhone: brand.supportPhone,
   };
+}
+
+export type ProductPopupConfig = {
+  enabled: boolean;
+  pageTarget: "home" | "product" | "both";
+  title: string;
+  description: string;
+  tool: {
+    id: string;
+    name: string;
+    slug: string;
+    shortDescription: string | null;
+    icon: string | null;
+  } | null;
+};
+
+export async function getProductPopupConfig(): Promise<ProductPopupConfig> {
+  const fallback: ProductPopupConfig = {
+    enabled: false,
+    pageTarget: "home",
+    title: "Featured Product",
+    description: "Check this recommended product.",
+    tool: null,
+  };
+  try {
+    const [enabledRaw, toolSlugRaw, pageTargetRaw, titleRaw, descriptionRaw] = await Promise.all([
+      getAppSettingValue("product_popup_enabled"),
+      getAppSettingValue("product_popup_tool_slug"),
+      getAppSettingValue("product_popup_page_target"),
+      getAppSettingValue("product_popup_title"),
+      getAppSettingValue("product_popup_description"),
+    ]);
+
+    const enabled = enabledRaw === "true";
+    const toolSlug = String(toolSlugRaw || "").trim();
+    const pageTarget = pageTargetRaw === "product" || pageTargetRaw === "both" ? pageTargetRaw : "home";
+    if (!enabled || !toolSlug) {
+      return {
+        ...fallback,
+        enabled,
+        pageTarget,
+        title: titleRaw?.trim() || fallback.title,
+        description: descriptionRaw?.trim() || fallback.description,
+      };
+    }
+
+    const tool = await prisma.tool.findUnique({
+      where: { slug: toolSlug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        shortDescription: true,
+        icon: true,
+      },
+    });
+
+    return {
+      enabled: !!tool,
+      pageTarget,
+      title: titleRaw?.trim() || `Try ${tool?.name || "this product"}`,
+      description: descriptionRaw?.trim() || tool?.shortDescription || fallback.description,
+      tool: tool || null,
+    };
+  } catch {
+    return fallback;
+  }
 }
 

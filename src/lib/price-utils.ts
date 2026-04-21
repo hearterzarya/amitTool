@@ -19,6 +19,8 @@ export function toNumber(value: number | bigint | null | undefined): number {
  */
 export interface ToolPriceFields {
   priceMonthly?: number | bigint | null;
+  sharedPlanEnabled?: boolean | null;
+  privatePlanEnabled?: boolean | null;
   sharedPlanPrice?: number | bigint | null;
   privatePlanPrice?: number | bigint | null;
   sharedPlanPrice1Month?: number | bigint | null;
@@ -31,15 +33,23 @@ export interface ToolPriceFields {
   privatePlanPrice1Year?: number | bigint | null;
 }
 
+function isPlanEnabled(tool: ToolPriceFields, plan: PlanType): boolean {
+  if (plan === 'shared') {
+    return tool.sharedPlanEnabled !== false;
+  }
+  return tool.privatePlanEnabled !== false;
+}
+
 /**
- * Get base price for a plan (shared or private)
- * Returns price in paise
+ * Get base price for an enabled plan (shared or private)
+ * Returns price in paise, 0 when plan is disabled or not configured
  */
 export function getBasePrice(
   tool: ToolPriceFields,
   plan: PlanType
 ): number {
   const MAX_VALID_PRICE = 1000000000; // ₹10M in paise
+  if (!isPlanEnabled(tool, plan)) return 0;
   
   if (plan === 'shared') {
     // Check sharedPlanPrice first
@@ -49,25 +59,11 @@ export function getBasePrice(
         return price;
       }
     }
-    // Fallback to priceMonthly
-    if (tool.priceMonthly) {
-      const price = toNumber(tool.priceMonthly);
-      if (price > 0 && price <= MAX_VALID_PRICE) {
-        return price;
-      }
-    }
     return 0;
   } else {
     // Check privatePlanPrice first
     if (tool.privatePlanPrice) {
       const price = toNumber(tool.privatePlanPrice);
-      if (price > 0 && price <= MAX_VALID_PRICE) {
-        return price;
-      }
-    }
-    // Fallback to priceMonthly
-    if (tool.priceMonthly) {
-      const price = toNumber(tool.priceMonthly);
       if (price > 0 && price <= MAX_VALID_PRICE) {
         return price;
       }
@@ -86,6 +82,7 @@ export function getOneMonthPrice(
   basePrice: number
 ): number {
   const MAX_VALID_PRICE = 1000000000; // ₹10M in paise
+  if (!isPlanEnabled(tool, plan)) return 0;
   
   if (plan === 'shared') {
     const price1Month = tool.sharedPlanPrice1Month;
@@ -226,6 +223,8 @@ export function isDurationEnabled(
   plan: PlanType,
   duration: Duration
 ): boolean {
+  if (!isPlanEnabled(tool, plan)) return false;
+
   if (plan === 'shared') {
     switch (duration) {
       case '1month':
@@ -271,14 +270,14 @@ export function getEnabledDurations(
 /**
  * Get minimum/starting price for a tool
  * Professional price calculation algorithm that:
- * 1. Prefers plan-specific prices (Shared/Private) so displayed price matches plan badges
- * 2. Only uses priceMonthly when no plan prices are set (avoids showing ₹1 when plans are ₹299/₹599)
+ * 1. Prefers plan-specific prices for enabled plans only
+ * 2. Never falls back to legacy monthly price in storefront
  * 3. Validates all prices against reasonable limits
  *
  * Priority order:
  * 1. 1-month plan-specific prices (sharedPlanPrice1Month, privatePlanPrice1Month)
  * 2. Base plan prices (sharedPlanPrice, privatePlanPrice)
- * 3. Fallback to priceMonthly only when no plan prices exist
+ * 3. Returns 0 when no enabled plan prices exist
  *
  * @param tool - Tool with price fields
  * @returns Minimum valid price in paise, or 0 if no valid price found
@@ -296,17 +295,20 @@ export function getMinimumStartingPrice(tool: ToolPriceFields): number {
   };
 
   // Plan-specific prices (what we show as "Shared: ₹X" / "Private: ₹Y")
-  addIfValid(tool.sharedPlanPrice1Month, planPrices);
-  addIfValid(tool.privatePlanPrice1Month, planPrices);
-  addIfValid(tool.sharedPlanPrice, planPrices);
-  addIfValid(tool.privatePlanPrice, planPrices);
+  if (tool.sharedPlanEnabled !== false) {
+    addIfValid(tool.sharedPlanPrice1Month, planPrices);
+    addIfValid(tool.sharedPlanPrice, planPrices);
+  }
+  if (tool.privatePlanEnabled !== false) {
+    addIfValid(tool.privatePlanPrice1Month, planPrices);
+    addIfValid(tool.privatePlanPrice, planPrices);
+  }
 
   // Use minimum of plan prices when any exist (e.g. admin/dashboard "Price" display)
   if (planPrices.length > 0) {
     return Math.min(...planPrices);
   }
 
-  // No plan prices: fall back to base monthly price
-  addIfValid(tool.priceMonthly, planPrices);
-  return planPrices.length > 0 ? Math.min(...planPrices) : 0;
+  // No plan prices means no storefront price yet
+  return 0;
 }

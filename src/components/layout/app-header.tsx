@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { 
-  Zap, 
   User, 
   Wrench, 
   Star, 
@@ -19,6 +18,7 @@ import {
 import { useState, useEffect } from "react";
 import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { BrandLogoMark } from "@/components/layout/brand-logo-mark";
 import {
   Sheet,
   SheetContent,
@@ -73,12 +73,7 @@ export function AppHeader() {
             className="flex items-center space-x-3 group transition-transform duration-300 hover:scale-105"
             aria-label="Home"
           >
-            <div className="relative">
-              <div className="absolute inset-0 gradient-surface-primary rounded-xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300" />
-              <div className="relative p-2.5 gradient-surface-primary rounded-xl shadow-glow-primary">
-                <Zap className="h-6 w-6 md:h-7 md:w-7 text-white" />
-              </div>
-            </div>
+            <BrandLogoMark size="md" className="group-hover:ring-purple-300/50 transition-all duration-300" />
             <span className="text-xl md:text-2xl font-display font-semibold text-gradient-primary">
               {brand.name}
             </span>
@@ -201,9 +196,7 @@ export function AppHeader() {
             <SheetContent side="right" className="w-[300px] sm:w-[400px] glass-strong border-l border-border/50">
               <SheetHeader>
                 <SheetTitle className="flex items-center space-x-3 font-display">
-                  <div className="p-2 gradient-surface-primary rounded-xl">
-                    <Zap className="h-6 w-6 text-white" />
-                  </div>
+                  <BrandLogoMark size="sm" />
                   <span className="text-gradient-primary">{brand.name}</span>
                 </SheetTitle>
               </SheetHeader>

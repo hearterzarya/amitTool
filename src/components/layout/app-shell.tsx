@@ -1,13 +1,16 @@
 import { AppHeader } from "./app-header";
 import { AppFooter } from "./app-footer";
 import { WhatsAppButton } from "./whatsapp-button";
+import { getProductPopupConfig } from "@/lib/app-settings";
+import { FeaturedProductPopup } from "@/components/marketing/featured-product-popup";
 
 interface AppShellProps {
   children: React.ReactNode;
   className?: string;
 }
 
-export function AppShell({ children, className = "" }: AppShellProps) {
+export async function AppShell({ children, className = "" }: AppShellProps) {
+  const popupConfig = await getProductPopupConfig();
   return (
     <div className="min-h-screen flex flex-col relative">
       <div className="fixed inset-0 gradient-surface-light -z-20"></div>
@@ -17,6 +20,7 @@ export function AppShell({ children, className = "" }: AppShellProps) {
       </main>
       <AppFooter />
       <WhatsAppButton />
+      <FeaturedProductPopup config={popupConfig} />
     </div>
   );
 }

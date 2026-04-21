@@ -260,47 +260,50 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
               )}
             </div>
 
-            {/* Price Display - Professional */}
-            <div className="mb-6 p-5 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200">
-              <div className="flex items-baseline gap-3 mb-2">
-                {finalPrice > 0 ? (
-                  <span className="text-4xl font-bold text-purple-600">
-                    {formatPrice(finalPrice)}
-                  </span>
-                ) : (
-                  <span className="text-2xl font-bold text-red-600">
-                    Price not available
-                  </span>
-                )}
-                {selectedDuration !== '1month' && (() => {
-                  const originalPrice = oneMonthPrice * (selectedDuration === '3months' ? 3 : selectedDuration === '6months' ? 6 : 12);
-                  return (
-                    <span className="text-lg text-slate-500 line-through">
-                      {formatPrice(originalPrice)}
-                    </span>
-                  );
-                })()}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-600">
-                  {selectedDuration === '1month' ? 'per month' :
-                   selectedDuration === '3months' ? 'for 3 months' :
-                   selectedDuration === '6months' ? 'for 6 months' :
-                   'for 1 year'}
-                </span>
-                {selectedDuration !== '1month' && (() => {
-                  const originalPrice = oneMonthPrice * (selectedDuration === '3months' ? 3 : selectedDuration === '6months' ? 6 : 12);
-                  const savings = originalPrice - finalPrice;
-                  if (savings > 0) {
-                    return (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                        Save {formatPrice(savings)}
-                      </Badge>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
+            {/* Pricing Section (Official vs Our Price style) */}
+            <div className="mb-6 p-5 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200">
+              {(() => {
+                const durationMultiplier =
+                  selectedDuration === '3months' ? 3 : selectedDuration === '6months' ? 6 : selectedDuration === '1year' ? 12 : 1;
+                const officialPrice = oneMonthPrice > 0 ? Math.round(oneMonthPrice * durationMultiplier * 1.65) : 0;
+                const savingsPercent = officialPrice > 0 && finalPrice > 0
+                  ? Math.max(0, Math.round(((officialPrice - finalPrice) / officialPrice) * 100))
+                  : 0;
+
+                return (
+                  <div className="space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                      <span className="font-medium">Official:</span>
+                      {officialPrice > 0 ? (
+                        <span className="text-red-600 line-through font-semibold">{formatPrice(officialPrice)}</span>
+                      ) : (
+                        <span className="text-slate-400">N/A</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-sm font-medium text-slate-700">Our price:</span>
+                      {finalPrice > 0 ? (
+                        <span className="text-4xl font-bold text-emerald-600">
+                          {formatPrice(finalPrice)}
+                        </span>
+                      ) : (
+                        <span className="text-xl font-bold text-red-600">Price not available</span>
+                      )}
+                      {savingsPercent > 0 && (
+                        <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-300">
+                          Save {savingsPercent}%
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {selectedDuration === '1month' ? 'per month' :
+                        selectedDuration === '3months' ? 'for 3 months' :
+                        selectedDuration === '6months' ? 'for 6 months' :
+                        'for 1 year'}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Out of Stock Warning */}
@@ -470,24 +473,24 @@ export function ToolProductPageClient({ tool, relatedTools, shareUrl }: ToolProd
               )}
             </div>
 
-            {/* Trust Indicators */}
+            {/* Trust Badges */}
             <div className="mt-6 pt-6 border-t border-slate-200">
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="flex items-center gap-2 text-slate-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  <span>Original access with latest features</span>
+                  <span>Original access</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-700">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  <span>Secure payment & instant activation</span>
+                  <span>Instant activation</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-700">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  <span>24/7 customer support</span>
+                  <span>Secure Indian payments</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-700">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-slate-700">
                   <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  <span>Works on PC/Mac (Desktop only)</span>
+                  <span>7-day support assurance</span>
                 </div>
               </div>
             </div>

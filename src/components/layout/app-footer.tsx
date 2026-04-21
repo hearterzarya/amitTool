@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { brand } from "@/lib/brand";
-import { Zap, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { useContactInfo } from "@/components/providers/contact-info-provider";
+import { BrandLogoMark } from "@/components/layout/brand-logo-mark";
 
 export function AppFooter() {
   const contactInfo = useContactInfo();
@@ -54,12 +55,7 @@ export function AppFooter() {
                 className="flex items-center space-x-3 mb-6 group"
                 aria-label="Home"
               >
-                <div className="relative">
-                  <div className="absolute inset-0 gradient-surface-primary rounded-xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300" />
-                  <div className="relative p-2.5 gradient-surface-primary rounded-xl shadow-glow-primary">
-                    <Zap className="h-6 w-6 text-white" />
-                  </div>
-                </div>
+                <BrandLogoMark size="md" />
                 <span className="text-xl font-display font-semibold text-gradient-primary">
                   {brand.name}
                 </span>

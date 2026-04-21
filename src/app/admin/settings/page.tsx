@@ -7,14 +7,31 @@ export default async function AdminSettingsPage() {
   let metaPixelId: { value: string | null } | null = null;
   let metaPixelEnabled: { value: string | null } | null = null;
   let whatsappNumber: { value: string | null } | null = null;
+  let productPopupEnabled: { value: string | null } | null = null;
+  let productPopupToolSlug: { value: string | null } | null = null;
+  let productPopupPageTarget: { value: string | null } | null = null;
+  let productPopupTitle: { value: string | null } | null = null;
+  let productPopupDescription: { value: string | null } | null = null;
+  let activeTools: Array<{ id: string; name: string; slug: string }> = [];
   let tableMissing = false;
 
   try {
-    [metaPixelId, metaPixelEnabled, whatsappNumber] = await Promise.all([
+    [metaPixelId, metaPixelEnabled, whatsappNumber, productPopupEnabled, productPopupToolSlug, productPopupPageTarget, productPopupTitle, productPopupDescription] = await Promise.all([
       prisma.appSetting.findUnique({ where: { key: "meta_pixel_id" } }),
       prisma.appSetting.findUnique({ where: { key: "meta_pixel_enabled" } }),
       prisma.appSetting.findUnique({ where: { key: "whatsapp_number" } }),
+      prisma.appSetting.findUnique({ where: { key: "product_popup_enabled" } }),
+      prisma.appSetting.findUnique({ where: { key: "product_popup_tool_slug" } }),
+      prisma.appSetting.findUnique({ where: { key: "product_popup_page_target" } }),
+      prisma.appSetting.findUnique({ where: { key: "product_popup_title" } }),
+      prisma.appSetting.findUnique({ where: { key: "product_popup_description" } }),
     ]);
+    activeTools = await prisma.tool.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, slug: true },
+      take: 200,
+    });
   } catch (e: any) {
     if (e?.code === "P2021" || String(e?.message || "").includes("app_settings")) {
       tableMissing = true;
@@ -40,6 +57,12 @@ export default async function AdminSettingsPage() {
         initialMetaPixelId={metaPixelId?.value ?? ""}
         initialMetaPixelEnabled={(metaPixelEnabled?.value ?? "") === "true"}
         initialWhatsappNumber={whatsappNumber?.value ?? ""}
+        initialProductPopupEnabled={(productPopupEnabled?.value ?? "") === "true"}
+        initialProductPopupToolSlug={productPopupToolSlug?.value ?? ""}
+        initialProductPopupPageTarget={(productPopupPageTarget?.value as "home" | "product" | "both") || "home"}
+        initialProductPopupTitle={productPopupTitle?.value ?? ""}
+        initialProductPopupDescription={productPopupDescription?.value ?? ""}
+        activeTools={activeTools}
       />
     </div>
   );

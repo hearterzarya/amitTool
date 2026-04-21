@@ -5,15 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function AdminSettingsForm(props: {
   initialMetaPixelId: string;
   initialMetaPixelEnabled: boolean;
   initialWhatsappNumber: string;
+  initialProductPopupEnabled: boolean;
+  initialProductPopupToolSlug: string;
+  initialProductPopupPageTarget: "home" | "product" | "both";
+  initialProductPopupTitle: string;
+  initialProductPopupDescription: string;
+  activeTools: Array<{ id: string; name: string; slug: string }>;
 }) {
   const [metaPixelId, setMetaPixelId] = useState(props.initialMetaPixelId);
   const [metaPixelEnabled, setMetaPixelEnabled] = useState(props.initialMetaPixelEnabled);
   const [whatsappNumber, setWhatsappNumber] = useState(props.initialWhatsappNumber);
+  const [productPopupEnabled, setProductPopupEnabled] = useState(props.initialProductPopupEnabled);
+  const [productPopupToolSlug, setProductPopupToolSlug] = useState(props.initialProductPopupToolSlug);
+  const [productPopupPageTarget, setProductPopupPageTarget] = useState<"home" | "product" | "both">(
+    props.initialProductPopupPageTarget
+  );
+  const [productPopupTitle, setProductPopupTitle] = useState(props.initialProductPopupTitle);
+  const [productPopupDescription, setProductPopupDescription] = useState(props.initialProductPopupDescription);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -27,7 +47,16 @@ export function AdminSettingsForm(props: {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metaPixelId, metaPixelEnabled, whatsappNumber }),
+        body: JSON.stringify({
+          metaPixelId,
+          metaPixelEnabled,
+          whatsappNumber,
+          productPopupEnabled,
+          productPopupToolSlug,
+          productPopupPageTarget,
+          productPopupTitle,
+          productPopupDescription,
+        }),
       });
 
       if (!res.ok) {
@@ -77,6 +106,90 @@ export function AdminSettingsForm(props: {
           <div className="flex gap-3">
             <Button type="button" onClick={save} disabled={saving}>
               {saving ? "Saving..." : "Save Contact"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Featured Product Popup</CardTitle>
+          <CardDescription>
+            Show a selected product in a popup on Home, Product pages, or both.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              id="productPopupEnabled"
+              type="checkbox"
+              checked={productPopupEnabled}
+              onChange={(e) => setProductPopupEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor="productPopupEnabled" className="cursor-pointer">
+              Enable popup
+            </Label>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Where to show popup</Label>
+            <Select
+              value={productPopupPageTarget}
+              onValueChange={(v) => setProductPopupPageTarget(v as "home" | "product" | "both")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="home">Home page only</SelectItem>
+                <SelectItem value="product">Product pages only</SelectItem>
+                <SelectItem value="both">Both Home and Product pages</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Popup Product</Label>
+            <Select
+              value={productPopupToolSlug || undefined}
+              onValueChange={setProductPopupToolSlug}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select product..." />
+              </SelectTrigger>
+              <SelectContent>
+                {props.activeTools.map((tool) => (
+                  <SelectItem key={tool.id} value={tool.slug}>
+                    {tool.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="productPopupTitle">Popup Title (optional)</Label>
+            <Input
+              id="productPopupTitle"
+              value={productPopupTitle}
+              onChange={(e) => setProductPopupTitle(e.target.value)}
+              placeholder="Limited Time Featured Product"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="productPopupDescription">Popup Description (optional)</Label>
+            <Input
+              id="productPopupDescription"
+              value={productPopupDescription}
+              onChange={(e) => setProductPopupDescription(e.target.value)}
+              placeholder="Handpicked by our team based on customer demand."
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button type="button" onClick={save} disabled={saving}>
+              {saving ? "Saving..." : "Save Popup Settings"}
             </Button>
           </div>
         </CardContent>

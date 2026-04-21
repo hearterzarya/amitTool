@@ -131,7 +131,9 @@ export function UsersManagementClient({
     type: 'TOOL' as 'TOOL' | 'BUNDLE',
     itemId: '',
     planType: 'SHARED' as 'SHARED' | 'PRIVATE',
+    validityMode: 'DATE' as 'DATE' | 'MONTHS',
     expiryDate: '',
+    durationMonths: '1',
     privateEmail: '',
     privatePassword: '',
   });
@@ -186,10 +188,14 @@ export function UsersManagementClient({
   };
 
   const handleGrantAccess = async () => {
-    if (!grantData.userId || !grantData.itemId || !grantData.expiryDate) {
+    const hasValidity =
+      grantData.validityMode === 'DATE'
+        ? !!grantData.expiryDate
+        : !!grantData.durationMonths && Number(grantData.durationMonths) > 0;
+    if (!grantData.userId || !grantData.itemId || !hasValidity) {
       toast({
         title: 'Missing information',
-        description: 'Choose a tool or bundle and an expiry date.',
+        description: 'Choose a tool or bundle and set validity (date or months).',
         variant: 'destructive',
       });
       return;
@@ -210,8 +216,9 @@ export function UsersManagementClient({
       const payload: Record<string, unknown> = {
         userId: grantData.userId,
         planType: grantData.planType,
-        expiryDate: grantData.expiryDate,
       };
+      if (grantData.validityMode === 'DATE') payload.expiryDate = grantData.expiryDate;
+      else payload.durationMonths = Number(grantData.durationMonths);
       if (grantData.type === 'TOOL') payload.toolId = grantData.itemId;
       else payload.bundleId = grantData.itemId;
 
@@ -249,7 +256,9 @@ export function UsersManagementClient({
         type: 'TOOL',
         itemId: '',
         planType: 'SHARED',
+        validityMode: 'DATE',
         expiryDate: '',
+        durationMonths: '1',
         privateEmail: '',
         privatePassword: '',
       });
@@ -450,9 +459,12 @@ export function UsersManagementClient({
 
   const grantTargetUser = users.find((u) => u.id === grantData.userId);
   const minExpiry = new Date().toISOString().slice(0, 10);
+  const validMonths = Number(grantData.durationMonths);
   const grantFormValid =
     !!grantData.itemId &&
-    !!grantData.expiryDate &&
+    (grantData.validityMode === 'DATE'
+      ? !!grantData.expiryDate
+      : Number.isInteger(validMonths) && validMonths > 0 && validMonths <= 60) &&
     (grantData.planType === 'SHARED' ||
       (grantData.privateEmail.trim().length > 0 && grantData.privatePassword.length > 0));
 
@@ -668,7 +680,9 @@ export function UsersManagementClient({
                               type: 'TOOL',
                               itemId: '',
                               planType: 'SHARED',
+                              validityMode: 'DATE',
                               expiryDate: defaultExpiryDate(),
+                              durationMonths: '1',
                               privateEmail: '',
                               privatePassword: '',
                             });
@@ -940,7 +954,9 @@ export function UsersManagementClient({
               type: 'TOOL',
               itemId: '',
               planType: 'SHARED',
+              validityMode: 'DATE',
               expiryDate: '',
+              durationMonths: '1',
               privateEmail: '',
               privatePassword: '',
             });
@@ -1064,16 +1080,54 @@ export function UsersManagementClient({
               </div>
             )}
             <div>
+              <Label>Validity Mode</Label>
+              <Select
+                value={grantData.validityMode}
+                onValueChange={(v) =>
+                  setGrantData({
+                    ...grantData,
+                    validityMode: v as 'DATE' | 'MONTHS',
+                    expiryDate: v === 'DATE' ? grantData.expiryDate || defaultExpiryDate() : '',
+                    durationMonths: v === 'MONTHS' ? grantData.durationMonths || '1' : grantData.durationMonths,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DATE">Specific expiry date</SelectItem>
+                  <SelectItem value="MONTHS">Custom months (admin)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label className="flex items-center gap-2">
                 <CalendarIcon className="h-4 w-4 text-slate-500" />
-                Access valid until
+                {grantData.validityMode === 'DATE' ? 'Access valid until' : 'Access validity in months'}
               </Label>
-              <Input
-                type="date"
-                min={minExpiry}
-                value={grantData.expiryDate}
-                onChange={(e) => setGrantData({ ...grantData, expiryDate: e.target.value })}
-              />
+              {grantData.validityMode === 'DATE' ? (
+                <Input
+                  type="date"
+                  min={minExpiry}
+                  value={grantData.expiryDate}
+                  onChange={(e) => setGrantData({ ...grantData, expiryDate: e.target.value })}
+                />
+              ) : (
+                <Input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={grantData.durationMonths}
+                  onChange={(e) => setGrantData({ ...grantData, durationMonths: e.target.value })}
+                  placeholder="e.g. 3"
+                />
+              )}
+              <p className="text-xs text-slate-500 mt-1">
+                {grantData.validityMode === 'DATE'
+                  ? 'Access expires at end of the selected date.'
+                  : 'Set any duration from 1 to 60 months.'}
+              </p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">

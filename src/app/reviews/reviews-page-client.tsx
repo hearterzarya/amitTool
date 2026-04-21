@@ -107,7 +107,7 @@ export function ReviewsPageClient({ screenshots }: ReviewsPageClientProps) {
       tool: "GitHub Copilot + ChatGPT",
       initials: "AD",
       rating: 5,
-      review: "As a developer, I need multiple tools. AliDigitalSolution bundle saved me thousands. Setup was instant and support is responsive.",
+      review: "As a developer, I need multiple tools. Amit Techsolution bundle saved me thousands. Setup was instant and support is responsive.",
       verified: true,
     },
   ];
@@ -151,7 +151,7 @@ export function ReviewsPageClient({ screenshots }: ReviewsPageClientProps) {
             Customer Reviews & Proofs
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            See what our customers are saying about AliDigitalSolution. Real reviews from verified users who transformed their workflow.
+            See what our customers are saying about Amit Techsolution. Real reviews from verified users who transformed their workflow.
           </p>
         </div>
 

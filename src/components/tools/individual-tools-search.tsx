@@ -81,7 +81,7 @@ export function IndividualToolsSearch({ tools: initialTools }: IndividualToolsSe
             return (
               <Link
                 key={tool.id}
-                href={`/tools#${tool.slug}`}
+                href={`/tools/${tool.slug}`}
                 className="group relative flex flex-col rounded-xl sm:rounded-2xl overflow-hidden bg-white border-2 border-slate-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 sm:hover:-translate-y-2"
               >
                 {/* Full-width image at top */}

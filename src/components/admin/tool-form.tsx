@@ -917,10 +917,10 @@ export function ToolForm({ tool, mode }: ToolFormProps) {
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label htmlFor="isFeatured" className="text-base font-semibold cursor-pointer">
-                    Featured Tool
+                    Best seller (home page)
                   </Label>
                   <p className="text-sm text-gray-600">
-                    Feature this tool in the slider (best/offer tools)
+                    When enabled, this tool appears in the <strong>Best Sellers</strong> grid on the home page.
                   </p>
                 </div>
                 <input
